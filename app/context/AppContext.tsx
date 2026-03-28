@@ -114,4 +114,118 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedName = await AsyncStorage.getItem(NAME_KEY);
       if (savedName) setDisplayNameState(savedName);
       
-      const saved
+      const savedAvatar = await AsyncStorage.getItem(AVATAR_KEY);
+      if (savedAvatar) setAvatarUriState(savedAvatar);
+
+      // 3. Register/Sync Server User
+      let suid = await AsyncStorage.getItem(SERVER_USER_KEY);
+      try {
+        let user = await getUserByDevice(uuid);
+        if (!user) {
+          user = await registerUser(uuid, savedName ?? 'StreetSense User');
+        }
+        suid = user.id;
+        await AsyncStorage.setItem(SERVER_USER_KEY, suid);
+        
+        if (!savedName && user.username) {
+          setDisplayNameState(user.username);
+          await AsyncStorage.setItem(NAME_KEY, user.username);
+        }
+      } catch (err) {
+        console.warn('Server offline mode');
+      }
+      if (suid) setServerUserId(suid);
+
+      // 4. Initial Report Load
+      const stored = await AsyncStorage.getItem(REPORTS_STORAGE_KEY);
+      if (stored) setReports(JSON.parse(stored));
+      
+      refreshReports();
+    })();
+  }, [refreshReports]);
+
+  // Persist reports locally whenever they change
+  useEffect(() => {
+    if (reports.length > 0) {
+      AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
+    }
+  }, [reports]);
+
+  /* ─── Actions ─── */
+  const setDisplayName = useCallback(async (name: string) => {
+    setDisplayNameState(name);
+    await AsyncStorage.setItem(NAME_KEY, name);
+    if (serverUserId) {
+      apiUpdateUser(serverUserId, { username: name }).catch(() => {});
+    }
+  }, [serverUserId]);
+
+  const setAvatarUri = useCallback(async (uri: string | null) => {
+    setAvatarUriState(uri);
+    if (uri) await AsyncStorage.setItem(AVATAR_KEY, uri);
+    else await AsyncStorage.removeItem(AVATAR_KEY);
+    
+    if (serverUserId) {
+      apiUpdateUser(serverUserId, { profile_picture: uri ?? undefined }).catch(() => {});
+    }
+  }, [serverUserId]);
+
+  const addReport = useCallback((report: Report) => {
+    setReports((prev) => [report, ...prev]);
+
+    if (!serverUserId) return;
+
+    void (async () => {
+      try {
+        const created = await apiCreateReport({
+          userId: serverUserId,
+          latitude: report.location.lat,
+          longitude: report.location.lng,
+          address: report.location.address,
+          severityScore: report.severityScore,
+          description: '', 
+          imageUri: report.imageUri || undefined,
+        });
+        // Replace temp report with real server report
+        setReports((prev) => 
+          prev.map((r) => (r.id === report.id ? toLocalReport(created) : r))
+        );
+      } catch (error) {
+        console.warn('API submission failed', error);
+      }
+    })();
+  }, [serverUserId]);
+
+  const updateReportStatus = useCallback((id: string, status: 'open' | 'fixed') => {
+    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    apiUpdateReportStatus(id, status).catch(() => {});
+  }, []);
+
+  const updatePublicReport = useCallback((id: string, patch: Partial<Pick<Report, 'status' | 'publicUpdate'>>) => {
+    setReports((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, ...patch } : r))
+    );
+  }, []);
+
+  return (
+    <AppContext.Provider
+      value={{
+        deviceUuid,
+        serverUserId,
+        displayName,
+        setDisplayName,
+        avatarUri,
+        setAvatarUri,
+        isAdmin,
+        setIsAdmin,
+        reports,
+        addReport,
+        updateReportStatus,
+        updatePublicReport,
+        refreshReports,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+}
