@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './AdminDashboard.css'
-import AdminDashboard from './AdminDashboard.jsx'
+import StreetSenseAdmin from './StreetSenseAdmin.jsx'
 import LoginPage from './LoginPage.jsx'
 import { AuthProvider, useAuth } from './AuthContext.jsx'
 
@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from './AuthContext.jsx'
 ─────────────────────────────────────────── */
 function AppGate() {
   const { user } = useAuth()
-  return user ? <AdminDashboard /> : <LoginPage />
+  return user ? <StreetSenseAdmin /> : <LoginPage />
 }
 
 createRoot(document.getElementById('root')).render(
