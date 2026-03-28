@@ -1,4 +1,5 @@
 import os
+import json
 import uuid
 import shutil
 from pathlib import Path
@@ -15,10 +16,11 @@ import google.generativeai as genai
 from PIL import Image
 import io
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import desc
+from sqlalchemy import desc, func, case, Integer as sqlalchemy_Integer
 from sqlmodel import select
 
 from database import init_db, get_session
+
 from models import (
     User, UserCreate, UserRead,
     Report, ReportCreate, ReportRead, ReportReadWithUser,
@@ -75,6 +77,27 @@ class ImageAnalysisResponse(BaseModel):
     success: bool
     response: str
     model: str
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    profile_picture: Optional[str] = None
+
+
+class PotholeAnalysisResponse(BaseModel):
+    severity_score: float
+    severity_label: str
+    description: str
+    dimensions: str
+    damage_estimate: str
+
+
+class LeaderboardEntry(BaseModel):
+    user_id: str
+    username: str
+    profile_picture: Optional[str] = None
+    score: int
+    report_count: int
 
 
 # ==================== Root Endpoints ====================
@@ -171,29 +194,29 @@ async def list_users(
 @app.patch("/users/{user_id}", response_model=UserRead)
 async def update_user(
     user_id: uuid.UUID,
-    username: Optional[str] = None,
+    body: UserUpdate,
     session: AsyncSession = Depends(get_session)
 ):
     """
     Update a user's profile information.
-    
-    - **user_id**: UUID of the user to update
-    - **username**: New display name for the user
-    
+
+    Accepts a JSON body with optional fields: username, profile_picture.
     Returns the updated user.
     """
     statement = select(User).where(User.id == user_id)
     result = await session.execute(statement)
     user = result.scalar_one_or_none()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    if username is not None:
-        user.username = username
-    
+
+    if body.username is not None:
+        user.username = body.username
+    if body.profile_picture is not None:
+        user.profile_picture = body.profile_picture
+
     user.updated_at = datetime.utcnow()
-    
+
     session.add(user)
     await session.commit()
     await session.refresh(user)
@@ -477,6 +500,117 @@ async def analyze_image(
             status_code=500,
             detail=f"Error processing image: {str(e)}"
         )
+
+
+# ==================== Pothole-Specific Analysis ====================
+
+@app.post("/analyze-pothole", response_model=PotholeAnalysisResponse)
+async def analyze_pothole(
+    image: UploadFile = File(...),
+):
+    """
+    Analyze a pothole image and return structured severity data.
+
+    Uses Gemini to evaluate the pothole's size, depth, and risk.
+    Returns a severity score (0-10), label, description, estimated
+    dimensions, and potential vehicle-damage cost range.
+    """
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if image.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
+        )
+
+    try:
+        image_data = await image.read()
+        pil_image = Image.open(io.BytesIO(image_data))
+
+        model = genai.GenerativeModel("gemini-2.5-flash")
+
+        prompt = (
+            "You are a road-damage assessment AI. Analyze this pothole image and "
+            "return ONLY a JSON object with these exact keys (no markdown, no extra text):\n"
+            '{"severity_score": <float 0-10>, "severity_label": "<Critical|Moderate|Minor>", '
+            '"description": "<1-2 sentence summary>", "dimensions": "<estimated width x depth in inches>", '
+            '"damage_estimate": "<vehicle repair cost range like $200 – $800>"}'
+        )
+
+        response = model.generate_content([prompt, pil_image])
+        # Strip markdown fences if Gemini wraps them
+        raw = response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        data = json.loads(raw)
+
+        return PotholeAnalysisResponse(
+            severity_score=max(0.0, min(10.0, float(data.get("severity_score", 5.0)))),
+            severity_label=data.get("severity_label", "Moderate"),
+            description=data.get("description", "Pothole detected."),
+            dimensions=data.get("dimensions", "Unknown"),
+            damage_estimate=data.get("damage_estimate", "$100 – $500"),
+        )
+
+    except json.JSONDecodeError:
+        # Gemini didn't return valid JSON — return a safe default
+        return PotholeAnalysisResponse(
+            severity_score=5.0,
+            severity_label="Moderate",
+            description="AI analysis could not be fully parsed. Manual review recommended.",
+            dimensions="Unknown",
+            damage_estimate="$100 – $500",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing pothole: {str(e)}"
+        )
+
+
+# ==================== Leaderboard ====================
+
+@app.get("/leaderboard", response_model=List[LeaderboardEntry])
+async def get_leaderboard(
+    limit: int = Query(20, ge=1, le=100),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Return a ranked leaderboard of users.
+
+    Score = 10 points per report + 5 bonus per report with severity >= 7.5.
+    """
+    statement = (
+        select(
+            User.id.label("user_id"),
+            User.username,
+            User.profile_picture,
+            func.count(Report.id).label("report_count"),
+            (
+                func.count(Report.id) * 10
+                + func.coalesce(
+                    func.sum(case((Report.severity_score >= 7.5, 5), else_=0)),
+                    0,
+                )
+            ).label("score"),
+        )
+        .join(Report, Report.user_id == User.id)
+        .group_by(User.id, User.username, User.profile_picture)
+        .order_by(desc("score"))
+        .limit(limit)
+    )
+    result = await session.execute(statement)
+    rows = result.all()
+
+    return [
+        LeaderboardEntry(
+            user_id=str(r.user_id),
+            username=r.username,
+            profile_picture=r.profile_picture,
+            score=int(r.score or 0),
+            report_count=int(r.report_count),
+        )
+        for r in rows
+    ]
 
 
 @app.post("/analyze-image-with-context", response_model=ImageAnalysisResponse)

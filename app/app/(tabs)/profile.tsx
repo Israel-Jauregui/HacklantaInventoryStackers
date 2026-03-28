@@ -11,7 +11,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '@/context/AppContext';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
-import type { Report } from '@/data/mockReports';
+import type { Report } from '@/context/AppContext';
 
 /* emoji lookup for avatar presets */
 const AVATAR_EMOJIS: Record<string, string> = {
@@ -20,10 +20,11 @@ const AVATAR_EMOJIS: Record<string, string> = {
 };
 
 export default function ProfileScreen() {
-  const { deviceUuid, displayName, avatarUri, isAdmin, setIsAdmin, reports } = useApp();
+  const { deviceUuid, serverUserId, displayName, avatarUri, isAdmin, setIsAdmin, reports } = useApp();
   const router = useRouter();
 
-  const myReports = reports.filter((r) => r.userId === deviceUuid);
+  const uid = serverUserId ?? deviceUuid;
+  const myReports = reports.filter((r) => r.userId === uid);
   const openCount = myReports.filter((r) => r.status === 'open').length;
   const fixedCount = myReports.filter((r) => r.status === 'fixed').length;
   const shortId = deviceUuid ? deviceUuid.slice(0, 8).toUpperCase() : '--------';

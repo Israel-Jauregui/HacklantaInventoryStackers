@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './AdminDashboard.css';
+import LiveMapPage from './LiveMapPage';
+import { useAuth } from './AuthContext';
 
 /* ════════════════════════════════════════════
    DATA
@@ -181,6 +183,7 @@ function NavItem({ page, label, badge, badgeVariant, icon, currentPage, onNav })
 ════════════════════════════════════════════ */
 function Sidebar({ activePage, onNavigate }) {
   const n = { currentPage: activePage, onNav: onNavigate };
+  const { user, logout } = useAuth();
   return (
     <nav className="sidebar">
       <div className="sidebar-logo">
@@ -254,11 +257,23 @@ function Sidebar({ activePage, onNavigate }) {
 
       <div className="sidebar-bottom">
         <div className="admin-card">
-          <div className="admin-avatar">JL</div>
-          <div>
-            <div className="admin-name">J. Lewis</div>
-            <div className="admin-role">District 6 Official</div>
+          <div className="admin-avatar">{user?.initials ?? 'AD'}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="admin-name">{user?.name ?? 'Admin'}</div>
+            <div className="admin-role">{user?.district ?? ''}</div>
           </div>
+          <button
+            className="sidebar-logout-btn"
+            onClick={logout}
+            title="Sign out"
+            aria-label="Sign out"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3"/>
+              <path d="M11 11l3-3-3-3"/>
+              <path d="M14 8H6"/>
+            </svg>
+          </button>
         </div>
       </div>
     </nav>
@@ -878,7 +893,7 @@ export default function AdminDashboard() {
     toastTimer.current = setTimeout(() => setToastVisible(false), 3500);
   }, []);
 
-  const knownPages = ['dashboard', 'heatmap'];
+  const knownPages = ['dashboard', 'heatmap', 'map'];
 
   return (
     <div className="app-shell">
@@ -887,6 +902,7 @@ export default function AdminDashboard() {
       <div className="main">
         {activePage==='dashboard' && <DashboardPage onOpenModal={openModal} onToast={showToast}/>}
         {activePage==='heatmap'   && <HeatmapPage   onOpenModal={openModal} onToast={showToast}/>}
+        {activePage==='map'       && <LiveMapPage    onOpenModal={openModal} onToast={showToast}/>}
         {!knownPages.includes(activePage) && (
           <>
             <header className="header">

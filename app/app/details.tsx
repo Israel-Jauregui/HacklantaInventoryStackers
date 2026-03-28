@@ -2,6 +2,7 @@ import { View, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
+import type { Report } from '@/context/AppContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
