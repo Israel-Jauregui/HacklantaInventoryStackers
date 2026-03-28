@@ -191,4 +191,88 @@ export default function ReviewScreen() {
   );
 }
 
-// ... styles remain the same ...
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.black },
+
+  /* Steps */
+  stepBar: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  stepSeg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)' },
+  stepDone: { backgroundColor: Colors.yellow },
+  stepActive: { backgroundColor: Colors.yellow, opacity: 0.6 },
+
+  scroll: { padding: 20, paddingBottom: 120, gap: 20 },
+
+  /* Hero */
+  heroWrap: { borderRadius: 18, overflow: 'hidden', position: 'relative' },
+  heroImg: { width: '100%', height: 200, borderRadius: 18, backgroundColor: Colors.dark3 },
+  heroPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  sevBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 50,
+  },
+  sevBadgeText: { color: Colors.white, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+
+  /* Title */
+  titleWrap: { gap: 4 },
+  title: { color: Colors.white, fontSize: 22, fontWeight: '700' },
+  subtitle: { color: Colors.muted, fontSize: 13, lineHeight: 19 },
+
+  /* Rows */
+  rowsCard: {
+    backgroundColor: Colors.dark2,
+    borderRadius: 16,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rowLabel: { color: Colors.muted, fontSize: 14 },
+  rowValue: { color: Colors.white, fontSize: 14, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 14 },
+
+  /* Note */
+  noteCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: 'rgba(0,122,255,0.08)',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0,122,255,0.2)',
+  },
+  noteText: { flex: 1, color: Colors.white, fontSize: 13, lineHeight: 19 },
+
+  /* CTAs */
+  ctaWrap: { paddingHorizontal: 20, paddingBottom: 16, gap: 10 },
+  ctaBtn: {
+    backgroundColor: Colors.yellow,
+    borderRadius: 50,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaBtnText: { color: Colors.black, fontSize: 16, fontWeight: '700' },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+  },
+  editBtnText: { color: Colors.white, fontSize: 14, fontWeight: '600' },
+});
