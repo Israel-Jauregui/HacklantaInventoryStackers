@@ -194,7 +194,7 @@ export default function ReviewScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.black },
 
-  /* Step bar */
+  /* Steps */
   stepBar: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   stepSeg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)' },
   stepDone: { backgroundColor: Colors.yellow },
