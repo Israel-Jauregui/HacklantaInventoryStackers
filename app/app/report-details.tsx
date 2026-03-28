@@ -55,7 +55,7 @@ export default function ReportDetailsScreen() {
     });
   };
 
-  const sevChips: Array<'Minor' | 'Moderate' | 'Critical'> = ['Minor', 'Moderate', 'Critical'];
+  const sevChips: ('Minor' | 'Moderate' | 'Critical')[] = ['Minor', 'Moderate', 'Critical'];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
