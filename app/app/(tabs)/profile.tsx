@@ -144,6 +144,23 @@ export default function ProfileScreen() {
             ios_backgroundColor={Colors.dark4}
           />
         </View>
+
+        <TouchableOpacity
+          style={styles.portalButton}
+          activeOpacity={0.84}
+          onPress={() => router.push('/admin')}
+        >
+          <View style={styles.portalButtonIcon}>
+            <Ionicons name="business-outline" size={16} color={Colors.black} />
+          </View>
+          <View style={styles.portalButtonTextWrap}>
+            <Text style={styles.portalButtonTitle}>Open Official Admin Portal</Text>
+            <Text style={styles.portalButtonSubtitle}>
+              Launch the separate city staff dashboard in Expo Go
+            </Text>
+          </View>
+          <Ionicons name="arrow-forward" size={16} color={Colors.black} />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -347,6 +364,37 @@ const styles = StyleSheet.create({
   },
   adminSub: {
     color: Colors.muted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  portalButton: {
+    marginTop: 14,
+    backgroundColor: Colors.yellow,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  portalButtonIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(10,10,10,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  portalButtonTextWrap: {
+    flex: 1,
+  },
+  portalButtonTitle: {
+    color: Colors.black,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  portalButtonSubtitle: {
+    color: 'rgba(10,10,10,0.68)',
     fontSize: 11,
     marginTop: 2,
   },
