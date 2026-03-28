@@ -9,6 +9,7 @@ import { Colors } from '@/constants/theme';
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<'front' | 'back'>('back');
+  const [flashOn, setFlashOn] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
 
@@ -53,7 +54,7 @@ export default function CameraScreen() {
   // ── Camera ready ──
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+      <CameraView ref={cameraRef} style={styles.camera} facing={facing} enableTorch={flashOn}>
         {/* Top overlay */}
         <SafeAreaView style={styles.topOverlay} edges={['top']}>
           {/* Step progress bar */}
@@ -65,14 +66,12 @@ export default function CameraScreen() {
           </View>
 
           <View style={styles.topRow}>
-            <TouchableOpacity style={styles.topBtn}>
-              <Ionicons name="close" size={20} color={Colors.white} />
-            </TouchableOpacity>
+            <View style={{ width: 36 }} />
             <View style={styles.modePill}>
               <Text style={styles.modePillText}>POTHOLE MODE</Text>
             </View>
-            <TouchableOpacity style={styles.topBtn}>
-              <Ionicons name="flash" size={18} color={Colors.yellow} />
+            <TouchableOpacity style={styles.topBtn} onPress={() => setFlashOn((f) => !f)}>
+              <Ionicons name={flashOn ? 'flash' : 'flash-off'} size={18} color={flashOn ? Colors.yellow : Colors.white} />
             </TouchableOpacity>
           </View>
         </SafeAreaView>

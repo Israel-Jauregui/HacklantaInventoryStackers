@@ -79,7 +79,7 @@ export default function ReportDetailsScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Photo thumbnails */}
+          {/* Photo thumbnail */}
           <View style={styles.thumbRow}>
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.thumb} />
@@ -88,12 +88,6 @@ export default function ReportDetailsScreen() {
                 <Ionicons name="image-outline" size={24} color={Colors.muted} />
               </View>
             )}
-            <TouchableOpacity style={styles.thumbAdd}>
-              <Ionicons name="add" size={22} color={Colors.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.thumbAdd}>
-              <Ionicons name="add" size={22} color={Colors.muted} />
-            </TouchableOpacity>
           </View>
 
           {/* Severity section */}
