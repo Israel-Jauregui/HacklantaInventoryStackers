@@ -59,6 +59,13 @@ class Report(ReportBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     image_path: Optional[str] = Field(default=None, description="Path to stored image file")
+    admin_priority: Optional[str] = Field(default=None, description="Admin-assigned priority (P1/P2/P3)")
+    admin_workflow_status: Optional[str] = Field(default=None, description="Admin workflow status")
+    admin_assigned_team: Optional[str] = Field(default=None, description="Assigned city crew/team")
+    admin_source: Optional[str] = Field(default=None, description="Report source for admin portal")
+    admin_reported_by: Optional[str] = Field(default=None, description="Reporter label for admin portal")
+    admin_public_update: Optional[str] = Field(default=None, description="Serialized public update JSON")
+    admin_notes: Optional[str] = Field(default=None, description="Serialized admin notes JSON array")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     

@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -98,6 +98,251 @@ class LeaderboardEntry(BaseModel):
     profile_picture: Optional[str] = None
     score: int
     report_count: int
+
+
+class AdminWhitelistEntry(BaseModel):
+    email: str
+    password: str
+    name: str
+    title: str
+    team: Optional[str] = None
+    role: Literal["official"] = "official"
+
+
+class AdminLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AdminUserRead(BaseModel):
+    email: str
+    name: str
+    title: str
+    team: Optional[str] = None
+    role: Literal["official"] = "official"
+
+
+class AdminNoteRead(BaseModel):
+    id: str
+    author: str
+    message: str
+    createdAt: str
+
+
+class AdminPublicUpdateRead(BaseModel):
+    authorRole: Literal["official"]
+    authorName: str
+    message: str
+    updatedAt: str
+
+
+class AdminLocationRead(BaseModel):
+    lat: float
+    lng: float
+    address: str
+
+
+class AdminReportRead(BaseModel):
+    id: str
+    title: str
+    category: Literal["Pothole", "Road Surface", "Hazard"]
+    description: str
+    imageUri: str
+    location: AdminLocationRead
+    severityScore: float
+    priority: Literal["P1", "P2", "P3"]
+    status: Literal["new", "triaged", "assigned", "in_progress", "resolved"]
+    district: str
+    assignedTeam: str
+    source: Literal["Resident App", "311 Desk", "Camera Survey"]
+    reportedBy: str
+    createdAt: str
+    updatedAt: str
+    publicUpdate: Optional[AdminPublicUpdateRead] = None
+    notes: List[AdminNoteRead]
+
+
+class AdminStatusUpdate(BaseModel):
+    status: Literal["new", "triaged", "assigned", "in_progress", "resolved"]
+
+
+class AdminPriorityUpdate(BaseModel):
+    priority: Literal["P1", "P2", "P3"]
+
+
+class AdminAssignmentUpdate(BaseModel):
+    team: str
+    actor: Optional[str] = None
+
+
+class AdminNoteCreate(BaseModel):
+    author: str
+    message: str
+
+
+class AdminPublicUpdateCreate(BaseModel):
+    authorName: str
+    message: str
+
+
+DEFAULT_ADMIN_WHITELIST = [
+    {
+        "email": "admin@atlanta.gov",
+        "password": "StreetOps2026",
+        "name": "Jordan Ellis",
+        "title": "City Operations Coordinator",
+        "team": "City Operations",
+        "role": "official",
+    }
+]
+
+
+def _load_admin_whitelist() -> Dict[str, AdminWhitelistEntry]:
+    raw = os.getenv("ADMIN_PORTAL_WHITELIST", "").strip()
+    entries: List[Dict[str, Any]]
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            entries = parsed if isinstance(parsed, list) else []
+        except Exception:
+            entries = DEFAULT_ADMIN_WHITELIST
+    else:
+        entries = DEFAULT_ADMIN_WHITELIST
+
+    whitelist: Dict[str, AdminWhitelistEntry] = {}
+    for entry in entries:
+        try:
+            model = AdminWhitelistEntry(**entry)
+            whitelist[model.email.lower()] = model
+        except Exception:
+            continue
+
+    if not whitelist:
+        default = AdminWhitelistEntry(**DEFAULT_ADMIN_WHITELIST[0])
+        whitelist[default.email.lower()] = default
+    return whitelist
+
+
+ADMIN_WHITELIST = _load_admin_whitelist()
+
+
+def _priority_from_score(score: float) -> Literal["P1", "P2", "P3"]:
+    if score >= 7.5:
+        return "P1"
+    if score >= 4:
+        return "P2"
+    return "P3"
+
+
+def _district_from_address(address: str) -> str:
+    if "Peachtree" in address or "Centennial" in address:
+        return "Downtown Core"
+    if "Piedmont" in address or "Ponce" in address:
+        return "Midtown East"
+    if "Auburn" in address:
+        return "Sweet Auburn"
+    if "North Ave" in address:
+        return "North Avenue"
+    return "Westside Corridor"
+
+
+def _parse_notes(raw: Optional[str]) -> List[Dict[str, Any]]:
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
+def _parse_public_update(raw: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else None
+    except Exception:
+        return None
+
+
+def _ensure_admin_defaults(report: Report) -> None:
+    if not report.admin_priority:
+        report.admin_priority = _priority_from_score(report.severity_score)
+    if not report.admin_workflow_status:
+        report.admin_workflow_status = "resolved" if report.status == ReportStatus.fixed else "new"
+    if not report.admin_assigned_team:
+        report.admin_assigned_team = "Surface Crew Alpha"
+    if not report.admin_source:
+        report.admin_source = "Resident App"
+    if not report.admin_reported_by:
+        report.admin_reported_by = "Resident Mobile Intake"
+    if not report.admin_notes:
+        report.admin_notes = "[]"
+
+
+def _to_admin_report(report: Report) -> AdminReportRead:
+    _ensure_admin_defaults(report)
+
+    notes_data = _parse_notes(report.admin_notes)
+    public_update_data = _parse_public_update(report.admin_public_update)
+
+    notes: List[AdminNoteRead] = []
+    for note in notes_data:
+        note_id = str(note.get("id") or uuid.uuid4())
+        created = note.get("createdAt") or note.get("created_at") or report.updated_at.isoformat()
+        notes.append(
+            AdminNoteRead(
+                id=note_id,
+                author=str(note.get("author") or "Admin User"),
+                message=str(note.get("message") or ""),
+                createdAt=str(created),
+            )
+        )
+
+    public_update: Optional[AdminPublicUpdateRead] = None
+    if public_update_data:
+        public_update = AdminPublicUpdateRead(
+            authorRole="official",
+            authorName=str(public_update_data.get("authorName") or "City Official"),
+            message=str(public_update_data.get("message") or ""),
+            updatedAt=str(public_update_data.get("updatedAt") or report.updated_at.isoformat()),
+        )
+
+    category: Literal["Pothole", "Road Surface", "Hazard"]
+    if report.severity_score >= 6:
+        category = "Pothole"
+    elif report.severity_score >= 4:
+        category = "Road Surface"
+    else:
+        category = "Hazard"
+
+    title = "High-severity pothole cluster" if report.severity_score >= 7.5 else "Road surface damage"
+
+    return AdminReportRead(
+        id=str(report.id),
+        title=title,
+        category=category,
+        description=report.description
+        or "Citizen-submitted roadway issue requiring city review, crew assignment, and closeout verification.",
+        imageUri=report.image_path or "",
+        location=AdminLocationRead(
+            lat=report.latitude,
+            lng=report.longitude,
+            address=report.address,
+        ),
+        severityScore=report.severity_score,
+        priority=report.admin_priority,
+        status=report.admin_workflow_status,
+        district=_district_from_address(report.address),
+        assignedTeam=report.admin_assigned_team,
+        source=report.admin_source,
+        reportedBy=report.admin_reported_by,
+        createdAt=report.created_at.isoformat(),
+        updatedAt=report.updated_at.isoformat(),
+        publicUpdate=public_update,
+        notes=notes,
+    )
 
 
 # ==================== Root Endpoints ====================
@@ -611,6 +856,237 @@ async def get_leaderboard(
         )
         for r in rows
     ]
+
+
+# ==================== Admin Portal ====================
+
+@app.post("/admin/login", response_model=AdminUserRead)
+async def admin_login(body: AdminLoginRequest):
+    """Whitelist-based login for city officials."""
+    email = body.email.strip().lower()
+    password = body.password.strip()
+
+    match = ADMIN_WHITELIST.get(email)
+    if not match or match.password != password:
+        raise HTTPException(status_code=401, detail="Invalid admin credentials")
+
+    return AdminUserRead(
+        email=match.email,
+        name=match.name,
+        title=match.title,
+        team=match.team,
+        role=match.role,
+    )
+
+
+@app.get("/admin/reports", response_model=List[AdminReportRead])
+async def admin_list_reports(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
+    session: AsyncSession = Depends(get_session),
+):
+    statement = select(Report).order_by(desc(Report.created_at)).offset(skip).limit(limit)
+    result = await session.execute(statement)
+    reports = result.scalars().all()
+
+    # Persist default admin values the first time reports are read.
+    for report in reports:
+        _ensure_admin_defaults(report)
+    session.add_all(reports)
+    await session.commit()
+
+    return [_to_admin_report(r) for r in reports]
+
+
+@app.get("/admin/reports/{report_id}", response_model=AdminReportRead)
+async def admin_get_report(
+    report_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+):
+    statement = select(Report).where(Report.id == report_id)
+    result = await session.execute(statement)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    _ensure_admin_defaults(report)
+    session.add(report)
+    await session.commit()
+    await session.refresh(report)
+    return _to_admin_report(report)
+
+
+@app.patch("/admin/reports/{report_id}/status", response_model=AdminReportRead)
+async def admin_update_report_status(
+    report_id: uuid.UUID,
+    body: AdminStatusUpdate,
+    session: AsyncSession = Depends(get_session),
+):
+    statement = select(Report).where(Report.id == report_id)
+    result = await session.execute(statement)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    _ensure_admin_defaults(report)
+    report.admin_workflow_status = body.status
+    report.status = ReportStatus.fixed if body.status == "resolved" else ReportStatus.open
+    report.updated_at = datetime.utcnow()
+
+    session.add(report)
+    await session.commit()
+    await session.refresh(report)
+    return _to_admin_report(report)
+
+
+@app.patch("/admin/reports/{report_id}/priority", response_model=AdminReportRead)
+async def admin_update_report_priority(
+    report_id: uuid.UUID,
+    body: AdminPriorityUpdate,
+    session: AsyncSession = Depends(get_session),
+):
+    statement = select(Report).where(Report.id == report_id)
+    result = await session.execute(statement)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    _ensure_admin_defaults(report)
+    report.admin_priority = body.priority
+    report.updated_at = datetime.utcnow()
+
+    session.add(report)
+    await session.commit()
+    await session.refresh(report)
+    return _to_admin_report(report)
+
+
+@app.patch("/admin/reports/{report_id}/assignment", response_model=AdminReportRead)
+async def admin_update_report_assignment(
+    report_id: uuid.UUID,
+    body: AdminAssignmentUpdate,
+    session: AsyncSession = Depends(get_session),
+):
+    statement = select(Report).where(Report.id == report_id)
+    result = await session.execute(statement)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    next_team = body.team.strip()
+    if not next_team:
+        raise HTTPException(status_code=400, detail="Team cannot be empty")
+
+    _ensure_admin_defaults(report)
+    report.admin_assigned_team = next_team
+    if report.admin_workflow_status == "new":
+        report.admin_workflow_status = "assigned"
+
+    notes = _parse_notes(report.admin_notes)
+    notes.insert(
+        0,
+        {
+            "id": str(uuid.uuid4()),
+            "author": body.actor or "City Official",
+            "message": f"Assignment updated to {next_team}.",
+            "createdAt": datetime.utcnow().isoformat(),
+        },
+    )
+    report.admin_notes = json.dumps(notes)
+    report.updated_at = datetime.utcnow()
+
+    session.add(report)
+    await session.commit()
+    await session.refresh(report)
+    return _to_admin_report(report)
+
+
+@app.post("/admin/reports/{report_id}/notes", response_model=AdminReportRead)
+async def admin_add_report_note(
+    report_id: uuid.UUID,
+    body: AdminNoteCreate,
+    session: AsyncSession = Depends(get_session),
+):
+    statement = select(Report).where(Report.id == report_id)
+    result = await session.execute(statement)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    message = body.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Note message cannot be empty")
+
+    _ensure_admin_defaults(report)
+    notes = _parse_notes(report.admin_notes)
+    notes.insert(
+        0,
+        {
+            "id": str(uuid.uuid4()),
+            "author": body.author.strip() or "City Official",
+            "message": message,
+            "createdAt": datetime.utcnow().isoformat(),
+        },
+    )
+    report.admin_notes = json.dumps(notes)
+    report.updated_at = datetime.utcnow()
+
+    session.add(report)
+    await session.commit()
+    await session.refresh(report)
+    return _to_admin_report(report)
+
+
+@app.post("/admin/reports/{report_id}/public-update", response_model=AdminReportRead)
+async def admin_publish_public_update(
+    report_id: uuid.UUID,
+    body: AdminPublicUpdateCreate,
+    session: AsyncSession = Depends(get_session),
+):
+    statement = select(Report).where(Report.id == report_id)
+    result = await session.execute(statement)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    message = body.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Public update message cannot be empty")
+
+    _ensure_admin_defaults(report)
+    updated_at = datetime.utcnow().isoformat()
+    report.admin_public_update = json.dumps(
+        {
+            "authorRole": "official",
+            "authorName": body.authorName.strip() or "City Official",
+            "message": message,
+            "updatedAt": updated_at,
+        }
+    )
+
+    notes = _parse_notes(report.admin_notes)
+    notes.insert(
+        0,
+        {
+            "id": str(uuid.uuid4()),
+            "author": body.authorName.strip() or "City Official",
+            "message": f"Public update: {message}",
+            "createdAt": updated_at,
+        },
+    )
+    report.admin_notes = json.dumps(notes)
+    report.updated_at = datetime.utcnow()
+
+    session.add(report)
+    await session.commit()
+    await session.refresh(report)
+    return _to_admin_report(report)
 
 
 @app.post("/analyze-image-with-context", response_model=ImageAnalysisResponse)
