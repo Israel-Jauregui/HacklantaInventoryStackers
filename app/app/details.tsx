@@ -23,6 +23,14 @@ export default function DetailsScreen() {
   }
 
   const score = report.severityScore;
+  const publicUpdateTimestamp = report.publicUpdate
+    ? new Date(report.publicUpdate.updatedAt).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
 
   const handleMarkFixed = () => {
     updateReportStatus(report.id, 'fixed');
@@ -84,6 +92,19 @@ export default function DetailsScreen() {
             {report.status.toUpperCase()}
           </Text>
         </View>
+
+        {report.publicUpdate ? (
+          <View style={styles.updateCard}>
+            <View style={styles.updateHeader}>
+              <Text style={styles.updateLabel}>CITY REPAIR UPDATE</Text>
+              <Ionicons name="construct-outline" size={16} color={Colors.yellow} />
+            </View>
+            <Text style={styles.updateMessage}>{report.publicUpdate.message}</Text>
+            <Text style={styles.updateMeta}>
+              {report.publicUpdate.authorName} · City Official · {publicUpdateTimestamp}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Admin: Mark as Fixed */}
         {isAdmin && report.status === 'open' && (
@@ -212,6 +233,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'right',
     maxWidth: '60%',
+  },
+  updateCard: {
+    backgroundColor: Colors.dark3,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  updateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  updateLabel: {
+    color: Colors.yellow,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  updateMessage: {
+    color: Colors.white,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  updateMeta: {
+    color: Colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
   },
   fixedBtn: {
     backgroundColor: Colors.green,
