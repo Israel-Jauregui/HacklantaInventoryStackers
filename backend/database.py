@@ -8,7 +8,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://inventory_user:inventory_pass@localhost:5432/inventory_db"
+    "postgresql+asyncpg://inventory_user:inventory_pass@localhost:5433/inventory_db"
 )
 
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)
