@@ -1,9 +1,12 @@
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
+import { useEffect, useState } from 'react';
+import { useApp } from '@/context/AppContext';
+import { getLeaderboard, type LeaderboardEntry } from '@/services/api';
 
-/* ─── Mock data ─── */
+/* ─── Types ─── */
 interface Scout {
   id: string;
   alias: string;
@@ -12,7 +15,8 @@ interface Scout {
   isCurrentUser: boolean;
 }
 
-const LEADERBOARD: Scout[] = [
+/* ─── Fallback mock data (used while server is unreachable) ─── */
+const MOCK_LEADERBOARD: Scout[] = [
   { id: '1', alias: 'AsphaltAvenger',  score: 1340, rank: 1,  isCurrentUser: false },
   { id: '2', alias: 'PotholePatrol',   score: 1185, rank: 2,  isCurrentUser: false },
   { id: '3', alias: 'RoadWarrior',     score: 1020, rank: 3,  isCurrentUser: false },
@@ -22,12 +26,8 @@ const LEADERBOARD: Scout[] = [
   { id: '7', alias: 'CivicSniper',     score: 590,  rank: 7,  isCurrentUser: false },
   { id: '8', alias: 'TarTitan',        score: 430,  rank: 8,  isCurrentUser: false },
   { id: '9', alias: 'GridGuru',        score: 310,  rank: 9,  isCurrentUser: false },
-  { id: '10', alias: 'BumpBuster',     score: 220,  rank: 10, isCurrentUser: false },
+  { id: '10', alias: 'BumpBuster',     score: 220, rank: 10, isCurrentUser: false },
 ];
-
-const currentUser = LEADERBOARD.find((u) => u.isCurrentUser)!;
-const podium = LEADERBOARD.slice(0, 3);
-const rest = LEADERBOARD.slice(3);
 
 /* ─── Helpers ─── */
 function rankBadge(rank: number) {
@@ -88,6 +88,37 @@ function ScoutRow({ user }: { user: Scout }) {
 
 /* ─── Screen ─── */
 export default function LeaderboardScreen() {
+  const { serverUserId } = useApp();
+  const [leaderboard, setLeaderboard] = useState<Scout[]>(MOCK_LEADERBOARD);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getLeaderboard(20);
+        if (data.length > 0) {
+          setLeaderboard(
+            data.map((e, i) => ({
+              id: e.user_id,
+              alias: e.username,
+              score: e.score,
+              rank: i + 1,
+              isCurrentUser: e.user_id === serverUserId,
+            })),
+          );
+        }
+      } catch {
+        // keep mock data
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [serverUserId]);
+
+  const currentUser = leaderboard.find((u) => u.isCurrentUser) ?? leaderboard[leaderboard.length - 1];
+  const podium = leaderboard.slice(0, 3);
+  const rest = leaderboard.slice(3);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}

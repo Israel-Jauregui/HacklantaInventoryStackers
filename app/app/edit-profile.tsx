@@ -131,11 +131,11 @@ export default function EditProfileScreen() {
             </View>
           </View>
 
-          {/* Note about backend */}
+          {/* Sync note */}
           <View style={styles.noteBanner}>
-            <Ionicons name="cloud-offline-outline" size={16} color={Colors.muted} />
+            <Ionicons name="cloud-done-outline" size={16} color={Colors.yellow} />
             <Text style={styles.noteText}>
-              Profile is stored locally. Cloud sync coming soon.
+              Profile syncs to codehawks.org automatically.
             </Text>
           </View>
         </ScrollView>

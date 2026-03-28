@@ -5,12 +5,15 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/context/AppContext';
 import { Colors, severityColor } from '@/constants/theme';
+import { createReport, imageUrl } from '@/services/api';
+import { useState } from 'react';
 
 export default function ReviewScreen() {
   const { imageUri, address, area, score, severity, notes, notify } =
@@ -24,13 +27,18 @@ export default function ReviewScreen() {
       notify: string;
     }>();
   const router = useRouter();
-  const { addReport, deviceUuid } = useApp();
+  const { addReport, deviceUuid, serverUserId, refreshReports } = useApp();
 
   const numScore = parseFloat(score) || 7.8;
   const sColor = severityColor(numScore);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    addReport({
+  const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+
+    // Optimistically add local report so the user sees it immediately
+    const localReport = {
       id: Date.now().toString(),
       imageUri: imageUri ?? '',
       location: {
@@ -39,9 +47,30 @@ export default function ReviewScreen() {
         address: `${address}, ${area}`,
       },
       severityScore: numScore,
-      status: 'open',
-      userId: deviceUuid ?? '',
-    });
+      status: 'open' as const,
+      userId: serverUserId ?? deviceUuid ?? '',
+    };
+    addReport(localReport);
+
+    // Send to backend
+    if (serverUserId) {
+      try {
+        await createReport({
+          userId: serverUserId,
+          latitude: 33.784,
+          longitude: -84.388,
+          address: `${address}, ${area}`,
+          severityScore: numScore,
+          description: notes || undefined,
+          imageUri: imageUri || undefined,
+        });
+        // Refresh list so the real server ID replaces our temp one
+        refreshReports().catch(() => {});
+      } catch (err) {
+        console.warn('Failed to submit report to server', err);
+      }
+    }
+
     router.replace('/(tabs)');
   };
 
