@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PotholeATL — UI Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #FFFC00;
+    --yellow-dim: #E6E300;
+    --black: #0A0A0A;
+    --dark: #111111;
+    --dark2: #1A1A1A;
+    --dark3: #242424;
+    --dark4: #2E2E2E;
+    --white: #FFFFFF;
+    --red: #FF3B30;
+    --amber: #FF9500;
+    --green: #34C759;
+    --blue: #007AFF;
+    --muted: rgba(255,255,255,0.45);
+    --muted2: rgba(255,255,255,0.15);
+    --muted3: rgba(255,255,255,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0d0d;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 48px;
+  }
+
+  h1 {
+    color: var(--yellow);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 28px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── FLOW NAV ── */
+  .flow-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+    background: var(--dark2);
+    border-radius: 40px;
+    padding: 5px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .flow-btn {
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+  }
+  .flow-btn.active {
+    background: var(--yellow);
+    color: var(--black);
+  }
+
+  /* ── PHONES ROW ── */
+  .phones-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ── PHONE FRAME ── */
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .screen-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .screen-tag span {
+    color: var(--yellow);
+  }
+
+  .phone {
+    width: 200px;
+    height: 430px;
+    background: var(--black);
+    border-radius: 36px;
+    border: 2px solid rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.25s;
+  }
+  .phone.highlighted {
+    border-color: var(--yellow);
+    box-shadow: 0 0 0 3px rgba(255,252,0,0.12);
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60px; height: 5px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 0 0 4px 4px;
+    z-index: 20;
+  }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px 4px;
+    z-index: 10;
+    position: relative;
+  }
+  .status-time { font-size: 11px; font-weight: 700; color: var(--white); }
+  .status-icons { display: flex; gap: 4px; align-items: center; }
+  .status-icons span { font-size: 9px; color: var(--white); }
+  .battery {
+    width: 18px; height: 9px;
+    border: 1.5px solid var(--white);
+    border-radius: 2px;
+    position: relative;
+    display: flex; align-items: center;
+  }
+  .battery::after {
+    content: '';
+    position: absolute; right: -4px;
+    width: 2px; height: 5px;
+    background: var(--white);
+    border-radius: 0 1px 1px 0;
+  }
+  .battery-fill {
+    width: 70%; height: 5px;
+    background: var(--white);
+    border-radius: 1px;
+    margin: 0 1px;
+  }
+
+  /* ── SCREEN 1: CAMERA ── */
+  .camera-bg {
+    flex: 1;
+    background: var(--dark2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .camera-scene {
+    flex: 1;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.6) 100%),
+      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255,255,255,0.03) 28px, rgba(255,255,255,0.03) 29px),
+      repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(255,255,255,0.03) 28px, rgba(255,255,255,0.03) 29px);
+    background-color: #1c2a1c;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .road-visual {
+    width: 80px;
+    height: 100%;
+    background: #2a2a2a;
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding-bottom: 0;
+  }
+  .road-line { width: 6px; height: 22px; background: rgba(255,255,200,0.25); border-radius: 3px; }
+  .pothole-hole {
+    position: absolute;
+    bottom: 60px; left: 50%; transform: translateX(-50%);
+    width: 38px; height: 22px;
+    background: #0a0a0a;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.08);
+  }
+  .focus-box {
+    position: absolute;
+    width: 90px; height: 54px;
+    border: 1.5px solid var(--yellow);
+    border-radius: 4px;
+    bottom: 42px; left: 50%; transform: translateX(-50%);
+  }
+  .focus-corner {
+    position: absolute;
+    width: 10px; height: 10px;
+  }
+  .focus-corner.tl { top: -1px; left: -1px; border-top: 2.5px solid var(--yellow); border-left: 2.5px solid var(--yellow); }
+  .focus-corner.tr { top: -1px; right: -1px; border-top: 2.5px solid var(--yellow); border-right: 2.5px solid var(--yellow); }
+  .focus-corner.bl { bottom: -1px; left: -1px; border-bottom: 2.5px solid var(--yellow); border-left: 2.5px solid var(--yellow); }
+  .focus-corner.br { bottom: -1px; right: -1px; border-bottom: 2.5px solid var(--yellow); border-right: 2.5px solid var(--yellow); }
+
+  .cam-top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px;
+    z-index: 5;
+  }
+  .cam-btn {
+    width: 30px; height: 30px;
+    background: rgba(0,0,0,0.45);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .cam-mode-pill {
+    background: rgba(0,0,0,0.45);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--yellow);
+    letter-spacing: 0.04em;
+  }
+  .cam-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 10px 16px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 5;
+  }
+  .cam-hint {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.02em;
+  }
+  .cam-controls {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cam-gallery {
+    width: 36px; height: 36px;
+    background: var(--dark3);
+    border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .shutter {
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    border: 3px solid var(--white);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .shutter-inner {
+    width: 42px; height: 42px;
+    background: var(--white);
+    border-radius: 50%;
+  }
+  .cam-flip {
+    width: 36px; height: 36px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  /* ── STEP PROGRESS BAR ── */
+  .step-bar {
+    display: flex;
+    gap: 3px;
+    padding: 0 14px;
+    margin-bottom: 2px;
+    position: absolute;
+    top: 36px; left: 0; right: 0;
+    z-index: 10;
+  }
+  .step-seg {
+    flex: 1;
+    height: 2.5px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .step-seg-fill {
+    height: 100%;
+    background: var(--yellow);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  .step-seg-fill.full { width: 100%; }
+  .step-seg-fill.active { width: 60%; }
+
+  /* ── SCREEN 2: LOCATION ── */
+  .location-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--black);
+    position: relative;
+  }
+  .loc-map {
+    height: 180px;
+    background: #1c2820;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .map-roads {
+    position: absolute; inset: 0;
+  }
+  .mr { position: absolute; background: #2d2d2d; }
+  .mrl { left:0;right:0;height:8px; }
+  .mrv { top:0;bottom:0;width:8px; }
+  .loc-pin {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -100%);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .pin-head {
+    width: 20px; height: 20px;
+    background: var(--yellow);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid var(--black);
+  }
+  .pin-shadow {
+    width: 8px; height: 4px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 50%;
+    margin-top: 1px;
+  }
+  .loc-content {
+    flex: 1;
+    padding: 14px 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .loc-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .loc-title {
+    font-size: 15px; font-weight: 700;
+    color: var(--white);
+  }
+  .loc-skip {
+    font-size: 11px; color: var(--muted);
+    font-weight: 500;
+  }
+  .loc-addr-card {
+    background: var(--dark3);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .loc-pin-icon {
+    width: 28px; height: 28px;
+    background: rgba(255,252,0,0.12);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .loc-addr-text { flex: 1; }
+  .loc-addr-main { font-size: 11px; font-weight: 600; color: var(--white); }
+  .loc-addr-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .loc-options { display: flex; gap: 7px; }
+  .loc-opt {
+    flex: 1;
+    background: var(--dark3);
+    border-radius: 10px;
+    padding: 9px 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .loc-opt.active-opt {
+    background: rgba(255,252,0,0.1);
+    color: var(--yellow);
+    border-color: rgba(255,252,0,0.25);
+  }
+  .loc-opt-icon { font-size: 13px; display: block; margin-bottom: 3px; }
+
+  /* ── SCREEN 3: DETAILS ── */
+  .details-screen {
+    flex: 1;
+    background: var(--black);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .photo-preview-row {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px 0;
+    flex-shrink: 0;
+  }
+  .photo-thumb {
+    width: 52px; height: 52px;
+    background: var(--dark3);
+    border-radius: 10px;
+    border: 1.5px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .photo-thumb.has-photo {
+    background: #1c2820;
+    border-color: rgba(255,252,0,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-road {
+    position: absolute; inset: 0;
+    background: #2a2a2a;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .photo-hole {
+    width: 22px; height: 14px;
+    background: #0a0a0a;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .photo-add {
+    width: 52px; height: 52px;
+    background: var(--dark3);
+    border-radius: 10px;
+    border: 1.5px dashed rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--muted);
+  }
+  .details-body {
+    flex: 1;
+    padding: 12px 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .sev-section { display: flex; flex-direction: column; gap: 6px; }
+  .sev-label-row {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .sev-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-score {
+    font-size: 12px; font-weight: 700;
+    color: var(--red);
+    font-family: 'DM Mono', monospace;
+  }
+  .sev-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--dark3);
+    position: relative;
+    overflow: hidden;
+  }
+  .sev-fill {
+    height: 100%;
+    width: 75%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--green), var(--amber), var(--red));
+  }
+  .sev-chips { display: flex; gap: 5px; }
+  .sev-chip {
+    flex: 1;
+    padding: 5px 0;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+  .chip-green { background: rgba(52,199,89,0.1); color: var(--green); border-color: rgba(52,199,89,0.2); }
+  .chip-amber { background: rgba(255,149,0,0.1); color: var(--amber); border-color: rgba(255,149,0,0.2); }
+  .chip-red { background: rgba(255,59,48,0.15); color: var(--red); border-color: rgba(255,59,48,0.3); }
+  .ai-banner {
+    background: rgba(255,252,0,0.07);
+    border: 1px solid rgba(255,252,0,0.18);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex; align-items: flex-start; gap: 7px;
+  }
+  .ai-dot {
+    width: 20px; height: 20px;
+    background: var(--yellow);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .ai-text { font-size: 10px; color: rgba(255,252,0,0.85); line-height: 1.5; }
+  .notes-input {
+    background: var(--dark3);
+    border-radius: 10px;
+    padding: 9px 11px;
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-family: 'DM Sans', sans-serif;
+  }
+  .toggle-section { display: flex; flex-direction: column; gap: 2px; }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .toggle-left { display: flex; align-items: center; gap: 8px; }
+  .toggle-icon {
+    width: 24px; height: 24px;
+    background: var(--dark3);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .toggle-text { font-size: 11px; color: var(--white); font-weight: 500; }
+  .toggle-switch {
+    width: 30px; height: 17px;
+    border-radius: 9px;
+    position: relative;
+  }
+  .toggle-on { background: var(--yellow); }
+  .toggle-off-bg { background: var(--dark4); }
+  .toggle-knob {
+    position: absolute;
+    width: 13px; height: 13px;
+    background: var(--white);
+    border-radius: 50%;
+    top: 2px;
+  }
+  .knob-on { right: 2px; }
+  .knob-off { left: 2px; background: rgba(255,255,255,0.5); }
+
+  /* ── SCREEN 4: REVIEW ── */
+  .review-screen {
+    flex: 1;
+    background: var(--black);
+    display: flex; flex-direction: column;
+  }
+  .review-photo-hero {
+    height: 110px;
+    background: #1c2820;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .review-road {
+    position: absolute; inset: 0;
+    background: #222;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .review-hole {
+    width: 50px; height: 32px;
+    background: #0a0a0a;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.06);
+    position: relative;
+    top: 12px;
+  }
+  .review-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 50%, var(--black) 100%);
+  }
+  .review-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: var(--red);
+    color: var(--white);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .review-body {
+    flex: 1;
+    padding: 12px 14px 8px;
+    display: flex; flex-direction: column; gap: 7px;
+    overflow: hidden;
+  }
+  .review-title { font-size: 14px; font-weight: 700; color: var(--white); }
+  .review-rows { display: flex; flex-direction: column; gap: 0; }
+  .review-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .review-key { font-size: 10px; color: var(--muted); font-weight: 500; }
+  .review-val { font-size: 10px; color: var(--white); font-weight: 600; text-align: right; max-width: 110px; }
+  .review-val.red { color: var(--red); }
+  .council-note {
+    background: var(--dark3);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .council-note strong { color: rgba(255,255,255,0.7); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    display: flex;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 6px 0 8px;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .nav-icon { font-size: 16px; }
+  .nav-label { font-size: 8px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; }
+  .nav-item.active .nav-label { color: var(--yellow); }
+  .nav-item.active .nav-icon { filter: drop-shadow(0 0 3px rgba(255,252,0,0.5)); }
+
+  /* ── CTA BUTTON ── */
+  .cta-wrap { padding: 0 14px 2px; flex-shrink: 0; }
+  .cta-btn {
+    width: 100%;
+    background: var(--yellow);
+    color: var(--black);
+    border: none;
+    border-radius: 50px;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .cta-btn-ghost {
+    width: 100%;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50px;
+    padding: 7px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    margin-top: 5px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── TOP BAR SHARED ── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 14px 4px;
+    flex-shrink: 0;
+  }
+  .topbar-back {
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--white);
+    font-weight: 600;
+  }
+  .topbar-title {
+    font-size: 13px; font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.01em;
+  }
+  .topbar-right { width: 28px; }
+
+  /* ── SUCCESS OVERLAY ── */
+  .success-overlay {
+    display: none;
+    position: absolute; inset: 0;
+    background: var(--black);
+    z-index: 30;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+  }
+  .success-overlay.show { display: flex; }
+  .success-ring {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    border: 3px solid var(--yellow);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+  }
+  .success-check {
+    width: 26px; height: 16px;
+    border-left: 3px solid var(--yellow);
+    border-bottom: 3px solid var(--yellow);
+    transform: rotate(-45deg) translateY(-3px);
+  }
+  .success-h { font-size: 16px; font-weight: 700; color: var(--white); text-align: center; }
+  .success-p { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
+  .success-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    color: var(--yellow);
+    background: rgba(255,252,0,0.08);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,252,0,0.2);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── HOME SCREEN ── */
+  .home-screen { flex:1; display:flex; flex-direction:column; background: var(--black); overflow: hidden; }
+  .home-header { padding: 8px 14px 6px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .home-logo { font-size:14px; font-weight:700; color:var(--yellow); letter-spacing:0.02em; }
+  .home-avatar {
+    width:28px; height:28px; border-radius:50%;
+    background: var(--dark3); border: 1.5px solid rgba(255,255,255,0.1);
+    display:flex; align-items:center; justify-content:center; font-size:12px;
+  }
+  .home-map-block {
+    height: 160px;
+    background: #1a2218;
+    position: relative; overflow: hidden; flex-shrink:0;
+    margin: 0 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .hm-road { position:absolute; background:#252525; }
+  .hm-dot { position:absolute; width:10px;height:10px;border-radius:50%;border:2px solid #0a0a0a; }
+  .hm-label { position:absolute; bottom:7px;left:8px; font-size:9px; background:rgba(0,0,0,0.55); color:rgba(255,255,255,0.7); padding:2px 6px; border-radius:4px; }
+  .filter-row { display:flex; gap:5px; padding: 8px 14px 4px; flex-shrink:0; overflow:hidden; }
+  .filter-chip {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 10px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--muted);
+    background: var(--dark3);
+    white-space: nowrap;
+  }
+  .filter-chip.fc-active { background: rgba(255,252,0,0.12); color: var(--yellow); border-color: rgba(255,252,0,0.25); }
+  .nearby-list { flex:1; padding: 4px 14px 0; display:flex; flex-direction:column; gap:6px; overflow:hidden; }
+  .nearby-item {
+    display:flex; align-items:center; gap:9px;
+    background: var(--dark3);
+    border-radius: 12px; padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .ni-dot { width:9px;height:9px;border-radius:50%;flex-shrink:0; }
+  .ni-info { flex:1; }
+  .ni-addr { font-size:11px; font-weight:600; color:var(--white); }
+  .ni-meta { font-size:9px; color:var(--muted); margin-top:1px; }
+  .ni-badge {
+    font-size:9px; font-weight:700; padding:2px 7px;
+    border-radius:20px; letter-spacing:0.04em; text-transform:uppercase;
+  }
+  .fab {
+    position: absolute;
+    bottom: 46px; right: 14px;
+    width: 44px; height: 44px;
+    background: var(--yellow);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700;
+    color: var(--black);
+    box-shadow: 0 2px 12px rgba(255,252,0,0.3);
+    cursor: pointer;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    margin-top: 18px;
+    padding: 10px 16px;
+    background: var(--dark2);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .legend-item { display:flex; align-items:center; gap:5px; }
+  .legend-dot { width:8px; height:8px; border-radius:50%; }
+  .legend-text { font-size:10px; color:var(--muted); font-weight:500; }
+</style>
+</head>
+<body>
+
+<h1>PotholeATL</h1>
+<div class="subtitle">React Native · Expo Go · Snapchat-inspired UI</div>
+
+<div class="flow-nav">
+  <button class="flow-btn active" onclick="showFlow('report')">Report flow</button>
+  <button class="flow-btn" onclick="showFlow('home')">Home screen</button>
+</div>
+
+<!-- ══════════════════════════════════
+     REPORT FLOW
+════════════════════════════════════ -->
+<div id="flow-report">
+<div class="phones-row">
+
+  <!-- SCREEN 1: CAMERA -->
+  <div class="phone-wrap">
+    <div class="screen-tag"><span>01</span> — Camera</div>
+    <div class="phone" id="ph-cam">
+      <div class="status-bar" style="position:absolute;top:8px;left:0;right:0;z-index:15;padding:0 14px;">
+        <span class="status-time" style="color:#fff;">9:41</span>
+        <div class="status-icons">
+          <span style="color:#fff;font-size:10px;">●●●</span>
+          <div class="battery"><div class="battery-fill"></div></div>
+        </div>
+      </div>
+      <div class="camera-bg">
+        <!-- Step bar -->
+        <div class="step-bar" style="top:30px;">
+          <div class="step-seg"><div class="step-seg-fill active"></div></div>
+          <div class="step-seg"><div class="step-seg-fill"></div></div>
+          <div class="step-seg"><div class="step-seg-fill"></div></div>
+          <div class="step-seg"><div class="step-seg-fill"></div></div>
+        </div>
+        <div class="camera-scene">
+          <div class="road-visual">
+            <div class="road-line"></div><div class="road-line"></div>
+            <div class="road-line"></div><div class="road-line"></div>
+          </div>
+          <div class="pothole-hole"></div>
+          <div class="focus-box">
+            <div class="focus-corner tl"></div>
+            <div class="focus-corner tr"></div>
+            <div class="focus-corner bl"></div>
+            <div class="focus-corner br"></div>
+          </div>
+        </div>
+        <div class="cam-top-bar">
+          <div class="cam-btn">✕</div>
+          <div class="cam-mode-pill">POTHOLE MODE</div>
+          <div class="cam-btn">⚡</div>
+        </div>
+        <div class="cam-bottom">
+          <div class="cam-hint">Point at the pothole and tap to capture</div>
+          <div class="cam-controls">
+            <div class="cam-gallery">🖼</div>
+            <div class="shutter"><div class="shutter-inner"></div></div>
+            <div class="cam-flip">↩</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: LOCATION -->
+  <div class="phone-wrap">
+    <div class="screen-tag"><span>02</span> — Location</div>
+    <div class="phone" id="ph-loc">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <span style="font-size:9px;color:var(--white);">●●●</span>
+          <div class="battery"><div class="battery-fill"></div></div>
+        </div>
+      </div>
+      <div class="step-bar">
+        <div class="step-seg"><div class="step-seg-fill full"></div></div>
+        <div class="step-seg"><div class="step-seg-fill active"></div></div>
+        <div class="step-seg"><div class="step-seg-fill"></div></div>
+        <div class="step-seg"><div class="step-seg-fill"></div></div>
+      </div>
+      <div class="location-screen">
+        <div class="loc-map">
+          <div class="map-roads">
+            <div class="mr mrl" style="top:40px;"></div>
+            <div class="mr mrl" style="top:85px;"></div>
+            <div class="mr mrl" style="top:130px;"></div>
+            <div class="mr mrv" style="left:50px;"></div>
+            <div class="mr mrv" style="left:110px;"></div>
+            <div class="mr mrv" style="left:160px;"></div>
+          </div>
+          <div class="loc-pin" style="left:55%;top:60%;">
+            <div class="pin-head"></div>
+            <div class="pin-shadow"></div>
+          </div>
+        </div>
+        <div class="loc-content">
+          <div class="loc-header">
+            <div class="loc-title">Confirm location</div>
+            <div class="loc-skip">Adjust</div>
+          </div>
+          <div class="loc-addr-card">
+            <div class="loc-pin-icon">📍</div>
+            <div class="loc-addr-text">
+              <div class="loc-addr-main">123 Peachtree St NW</div>
+              <div class="loc-addr-sub">Midtown Atlanta, GA 30309</div>
+            </div>
+          </div>
+          <div class="loc-options">
+            <div class="loc-opt active-opt">
+              <span class="loc-opt-icon">📡</span>
+              Use GPS
+            </div>
+            <div class="loc-opt">
+              <span class="loc-opt-icon">⌨</span>
+              Type address
+            </div>
+            <div class="loc-opt">
+              <span class="loc-opt-icon">🗺</span>
+              Drop pin
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cta-wrap">
+        <button class="cta-btn">Next →</button>
+      </div>
+      <div style="height:8px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: DETAILS -->
+  <div class="phone-wrap">
+    <div class="screen-tag"><span>03</span> — Details</div>
+    <div class="phone" id="ph-det">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <span style="font-size:9px;color:var(--white);">●●●</span>
+          <div class="battery"><div class="battery-fill"></div></div>
+        </div>
+      </div>
+      <div class="step-bar">
+        <div class="step-seg"><div class="step-seg-fill full"></div></div>
+        <div class="step-seg"><div class="step-seg-fill full"></div></div>
+        <div class="step-seg"><div class="step-seg-fill active"></div></div>
+        <div class="step-seg"><div class="step-seg-fill"></div></div>
+      </div>
+      <div class="topbar">
+        <div class="topbar-back">‹</div>
+        <div class="topbar-title">Details</div>
+        <div class="topbar-right"></div>
+      </div>
+      <div class="details-screen">
+        <div class="photo-preview-row">
+          <div class="photo-thumb has-photo">
+            <div class="photo-road"><div class="photo-hole"></div></div>
+          </div>
+          <div class="photo-add">+</div>
+          <div class="photo-add" style="font-size:12px;color:rgba(255,255,255,0.15);">+</div>
+        </div>
+        <div class="details-body">
+          <div class="sev-section">
+            <div class="sev-label-row">
+              <div class="sev-label">Severity</div>
+              <div class="sev-score">7.8 / 10</div>
+            </div>
+            <div class="sev-track"><div class="sev-fill"></div></div>
+            <div class="sev-chips">
+              <div class="sev-chip chip-green">Minor</div>
+              <div class="sev-chip chip-amber">Moderate</div>
+              <div class="sev-chip chip-red" style="border-width:1.5px;">Critical ✓</div>
+            </div>
+          </div>
+          <div class="ai-banner">
+            <div class="ai-dot">✦</div>
+            <div class="ai-text">AI detected large pothole (~18 in wide, ~4 in deep). Severity set to <strong style="color:var(--yellow);">Critical</strong>.</div>
+          </div>
+          <div class="notes-input">Add a note (optional)…</div>
+          <div class="toggle-section">
+            <div class="toggle-row">
+              <div class="toggle-left">
+                <div class="toggle-icon">🔔</div>
+                <div class="toggle-text">Notify me when fixed</div>
+              </div>
+              <div class="toggle-switch toggle-on"><div class="toggle-knob knob-on"></div></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-left">
+                <div class="toggle-icon">👤</div>
+                <div class="toggle-text">Report anonymously</div>
+              </div>
+              <div class="toggle-switch toggle-off-bg"><div class="toggle-knob knob-off"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cta-wrap">
+        <button class="cta-btn">Review report →</button>
+      </div>
+      <div style="height:8px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: REVIEW & SUBMIT -->
+  <div class="phone-wrap">
+    <div class="screen-tag"><span>04</span> — Submit</div>
+    <div class="phone" id="ph-rev">
+
+      <!-- Success overlay -->
+      <div class="success-overlay" id="successOverlay">
+        <div class="success-ring"><div class="success-check"></div></div>
+        <div class="success-h">Report sent!</div>
+        <div class="success-p">Your pothole has been added to the Atlanta map and flagged for city council.</div>
+        <div class="success-id">ATL-2847</div>
+        <div style="width:100%;margin-top:6px;">
+          <button class="cta-btn" onclick="document.getElementById('successOverlay').classList.remove('show')">View on map</button>
+          <button class="cta-btn-ghost">Report another</button>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <span style="font-size:9px;color:var(--white);">●●●</span>
+          <div class="battery"><div class="battery-fill"></div></div>
+        </div>
+      </div>
+      <div class="step-bar">
+        <div class="step-seg"><div class="step-seg-fill full"></div></div>
+        <div class="step-seg"><div class="step-seg-fill full"></div></div>
+        <div class="step-seg"><div class="step-seg-fill full"></div></div>
+        <div class="step-seg"><div class="step-seg-fill active"></div></div>
+      </div>
+      <div class="topbar">
+        <div class="topbar-back">‹</div>
+        <div class="topbar-title">Review</div>
+        <div class="topbar-right"></div>
+      </div>
+      <div class="review-screen">
+        <div class="review-photo-hero">
+          <div class="review-road"><div class="review-hole"></div></div>
+          <div class="review-overlay"></div>
+          <div class="review-badge">Critical</div>
+        </div>
+        <div class="review-body">
+          <div class="review-title">Ready to submit</div>
+          <div class="review-rows">
+            <div class="review-row">
+              <div class="review-key">Location</div>
+              <div class="review-val">123 Peachtree St NW</div>
+            </div>
+            <div class="review-row">
+              <div class="review-key">Photos</div>
+              <div class="review-val">1 attached</div>
+            </div>
+            <div class="review-row">
+              <div class="review-key">Severity</div>
+              <div class="review-val red">Critical · 7.8 / 10</div>
+            </div>
+            <div class="review-row">
+              <div class="review-key">Notify on fix</div>
+              <div class="review-val">Yes</div>
+            </div>
+            <div class="review-row" style="border:none;">
+              <div class="review-key">Send to council</div>
+              <div class="review-val">Atlanta District 6</div>
+            </div>
+          </div>
+          <div class="council-note">
+            This report will be sent to <strong>Atlanta City Council</strong> and added to the public priority map.
+          </div>
+        </div>
+      </div>
+      <div class="cta-wrap">
+        <button class="cta-btn" onclick="document.getElementById('successOverlay').classList.add('show')">Submit report ↗</button>
+        <button class="cta-btn-ghost">Edit report</button>
+      </div>
+      <div style="height:8px;"></div>
+    </div>
+  </div>
+
+</div><!-- /phones-row -->
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red);"></div><div class="legend-text">Critical ≥ 7.5</div></div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber);"></div><div class="legend-text">Moderate 4–7.4</div></div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div><div class="legend-text">Minor &lt; 4</div></div>
+  <div class="legend-item" style="border-left:1px solid rgba(255,255,255,0.1);padding-left:12px;"><div class="legend-dot" style="background:var(--yellow);border-radius:3px;"></div><div class="legend-text">AI-assisted severity score</div></div>
+</div>
+</div><!-- /flow-report -->
+
+
+<!-- ══════════════════════════════════
+     HOME SCREEN
+════════════════════════════════════ -->
+<div id="flow-home" style="display:none;">
+<div class="phones-row">
+  <div class="phone-wrap">
+    <div class="screen-tag"><span>Home</span> — Map view</div>
+    <div class="phone" style="width:220px;height:460px;">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <span style="font-size:9px;color:var(--white);">●●●</span>
+          <div class="battery"><div class="battery-fill"></div></div>
+        </div>
+      </div>
+      <div class="home-screen">
+        <div class="home-header">
+          <div class="home-logo">PotholeATL</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="font-size:10px;background:rgba(255,59,48,0.15);color:var(--red);padding:3px 8px;border-radius:20px;font-weight:700;border:1px solid rgba(255,59,48,0.25);">31 critical</div>
+            <div class="home-avatar">👤</div>
+          </div>
+        </div>
+        <div style="padding:0 14px 8px;">
+          <div class="home-map-block">
+            <div class="hm-road mrl" style="top:40px;background:#252525;position:absolute;left:0;right:0;height:8px;"></div>
+            <div class="hm-road mrl" style="top:90px;background:#252525;position:absolute;left:0;right:0;height:8px;"></div>
+            <div class="hm-road mrl" style="top:130px;background:#252525;position:absolute;left:0;right:0;height:8px;"></div>
+            <div class="hm-road mrv" style="left:55px;background:#252525;position:absolute;top:0;bottom:0;width:8px;"></div>
+            <div class="hm-road mrv" style="left:120px;background:#252525;position:absolute;top:0;bottom:0;width:8px;"></div>
+            <div class="hm-road mrv" style="left:175px;background:#252525;position:absolute;top:0;bottom:0;width:8px;"></div>
+            <div class="hm-dot" style="background:var(--red);top:32px;left:62px;"></div>
+            <div class="hm-dot" style="background:var(--red);top:82px;left:128px;"></div>
+            <div class="hm-dot" style="background:var(--amber);top:55px;left:95px;"></div>
+            <div class="hm-dot" style="background:var(--amber);top:122px;left:60px;"></div>
+            <div class="hm-dot" style="background:var(--green);top:95px;left:180px;"></div>
+            <div class="hm-dot" style="background:var(--red);top:40px;left:180px;"></div>
+            <div class="hm-label">Atlanta, GA</div>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-chip fc-active">All</div>
+          <div class="filter-chip" style="color:var(--red);border-color:rgba(255,59,48,0.25);">Critical</div>
+          <div class="filter-chip">Moderate</div>
+          <div class="filter-chip">Minor</div>
+        </div>
+        <div class="nearby-list">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;padding:2px 0 2px;">Nearby</div>
+          <div class="nearby-item">
+            <div class="ni-dot" style="background:var(--red);"></div>
+            <div class="ni-info">
+              <div class="ni-addr">Peachtree St & 10th</div>
+              <div class="ni-meta">8 reports · 0.1 mi</div>
+            </div>
+            <div class="ni-badge" style="background:rgba(255,59,48,0.12);color:var(--red);border:1px solid rgba(255,59,48,0.25);">9.1</div>
+          </div>
+          <div class="nearby-item">
+            <div class="ni-dot" style="background:var(--red);"></div>
+            <div class="ni-info">
+              <div class="ni-addr">Memorial Dr SW</div>
+              <div class="ni-meta">5 reports · 0.3 mi</div>
+            </div>
+            <div class="ni-badge" style="background:rgba(255,59,48,0.12);color:var(--red);border:1px solid rgba(255,59,48,0.25);">8.7</div>
+          </div>
+          <div class="nearby-item">
+            <div class="ni-dot" style="background:var(--amber);"></div>
+            <div class="ni-info">
+              <div class="ni-addr">Ralph McGill Blvd</div>
+              <div class="ni-meta">3 reports · 0.5 mi</div>
+            </div>
+            <div class="ni-badge" style="background:rgba(255,149,0,0.12);color:var(--amber);border:1px solid rgba(255,149,0,0.25);">6.4</div>
+          </div>
+        </div>
+        <div style="position:relative;height:44px;flex-shrink:0;">
+          <div class="fab">+</div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon">🗺</div><div class="nav-label">Map</div></div>
+        <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">List</div></div>
+        <div class="nav-item"><div class="nav-icon">📊</div><div class="nav-label">Stats</div></div>
+        <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+  function showFlow(name) {
+    document.getElementById('flow-report').style.display = name === 'report' ? '' : 'none';
+    document.getElementById('flow-home').style.display = name === 'home' ? '' : 'none';
+    document.querySelectorAll('.flow-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>
