@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
+import { MapActionRow } from '@/components/admin/MapActionRow';
 import { AdminPortalShell } from '@/components/admin/AdminPortalShell';
 import { useAdminPortal } from '@/context/AdminPortalContext';
 import { getPriorityColor, getStatusColor, getStatusLabel } from '@/utils/adminPortal';
@@ -19,7 +20,8 @@ type Filter = (typeof FILTERS)[number];
 
 export default function AdminReportsScreen() {
   const router = useRouter();
-  const { reports } = useAdminPortal();
+  const { reports, user } = useAdminPortal();
+  const isEmployee = user?.role === 'employee';
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
 
@@ -40,7 +42,11 @@ export default function AdminReportsScreen() {
   return (
     <AdminPortalShell
       title="Report Queue"
-      subtitle="Review incoming reports, inspect ownership, and open case details for action."
+      subtitle={
+        isEmployee
+          ? 'Receive new reports, manage crew ownership, and open each case to update the internal thread.'
+          : 'Review incoming reports, inspect ownership, and open case details for oversight.'
+      }
       activeSection="reports"
     >
       <View style={styles.searchWrap}>
@@ -73,49 +79,58 @@ export default function AdminReportsScreen() {
       <View style={styles.listWrap}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>{filteredReports.length} reports</Text>
-          <Text style={styles.listHint}>Internal admin queue</Text>
+          <Text style={styles.listHint}>
+            {isEmployee ? 'Crew intake and dispatch queue' : 'Official oversight queue'}
+          </Text>
         </View>
 
         {filteredReports.map((report) => (
-          <TouchableOpacity
-            key={report.id}
-            style={styles.reportCard}
-            activeOpacity={0.84}
-            onPress={() =>
-              router.push({
-                pathname: '/admin/reports/[id]',
-                params: { id: report.id },
-              })
-            }
-          >
-            <View style={styles.cardTop}>
-              <View style={styles.cardTitleWrap}>
-                <Text style={styles.cardTitle}>{report.location.address}</Text>
-                <Text style={styles.cardSubtitle}>
-                  {report.id} · {report.district}
-                </Text>
+          <View key={report.id} style={styles.reportCard}>
+            <TouchableOpacity
+              style={styles.cardPressArea}
+              activeOpacity={0.84}
+              onPress={() =>
+                router.push({
+                  pathname: '/admin/reports/[id]',
+                  params: { id: report.id },
+                })
+              }
+            >
+              <View style={styles.cardTop}>
+                <View style={styles.cardTitleWrap}>
+                  <Text style={styles.cardTitle}>{report.location.address}</Text>
+                  <Text style={styles.cardSubtitle}>
+                    {report.id} · {report.district}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.muted} />
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.muted} />
-            </View>
 
-            <View style={styles.cardMetaRow}>
-              <View style={[styles.pill, { backgroundColor: `${getPriorityColor(report.priority)}16` }]}>
-                <Text style={[styles.pillText, { color: getPriorityColor(report.priority) }]}>
-                  {report.priority}
-                </Text>
+              <View style={styles.cardMetaRow}>
+                <View style={[styles.pill, { backgroundColor: `${getPriorityColor(report.priority)}16` }]}>
+                  <Text style={[styles.pillText, { color: getPriorityColor(report.priority) }]}>
+                    {report.priority}
+                  </Text>
+                </View>
+                <View style={[styles.pill, { backgroundColor: `${getStatusColor(report.status)}16` }]}>
+                  <Text style={[styles.pillText, { color: getStatusColor(report.status) }]}>
+                    {getStatusLabel(report.status)}
+                  </Text>
+                </View>
               </View>
-              <View style={[styles.pill, { backgroundColor: `${getStatusColor(report.status)}16` }]}>
-                <Text style={[styles.pillText, { color: getStatusColor(report.status) }]}>
-                  {getStatusLabel(report.status)}
-                </Text>
-              </View>
-            </View>
+            </TouchableOpacity>
+
+            <MapActionRow
+              address={report.location.address}
+              latitude={report.location.lat}
+              longitude={report.location.lng}
+            />
 
             <View style={styles.cardBottom}>
               <Text style={styles.cardMetaText}>Assigned to {report.assignedTeam}</Text>
-              <Text style={styles.cardMetaText}>{report.notes.length} notes</Text>
+              <Text style={styles.cardMetaText}>{report.notes.length} thread messages</Text>
             </View>
-          </TouchableOpacity>
+          </View>
         ))}
 
         {!filteredReports.length ? (
@@ -193,6 +208,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
+    gap: 12,
+  },
+  cardPressArea: {
     gap: 12,
   },
   cardTop: {

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Colors } from '@/constants/theme';
+import { MapActionRow } from '@/components/admin/MapActionRow';
 import { AdminPortalShell } from '@/components/admin/AdminPortalShell';
 import { useAdminPortal } from '@/context/AdminPortalContext';
 import { getPriorityColor } from '@/utils/adminPortal';
@@ -78,25 +79,34 @@ export default function AdminMapScreen() {
         <Text style={styles.sectionTitle}>Quick Access</Text>
         {reports.slice(0, 5).map((report, index) => (
           <View key={report.id}>
-            <TouchableOpacity
-              style={styles.quickRow}
-              activeOpacity={0.84}
-              onPress={() =>
-                router.push({
-                  pathname: '/admin/reports/[id]',
-                  params: { id: report.id },
-                })
-              }
-            >
-              <View style={[styles.quickDot, { backgroundColor: getPriorityColor(report.priority) }]} />
-              <View style={styles.quickBody}>
-                <Text style={styles.quickTitle}>{report.location.address}</Text>
-                <Text style={styles.quickMeta}>
-                  {report.priority} · {report.district}
-                </Text>
+            <View style={styles.quickRow}>
+              <TouchableOpacity
+                style={styles.quickMainRow}
+                activeOpacity={0.84}
+                onPress={() =>
+                  router.push({
+                    pathname: '/admin/reports/[id]',
+                    params: { id: report.id },
+                  })
+                }
+              >
+                <View style={[styles.quickDot, { backgroundColor: getPriorityColor(report.priority) }]} />
+                <View style={styles.quickBody}>
+                  <Text style={styles.quickTitle}>{report.location.address}</Text>
+                  <Text style={styles.quickMeta}>
+                    {report.priority} · {report.district}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.muted} />
+              </TouchableOpacity>
+              <View style={styles.quickActions}>
+                <MapActionRow
+                  address={report.location.address}
+                  latitude={report.location.lat}
+                  longitude={report.location.lng}
+                />
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.muted} />
-            </TouchableOpacity>
+            </View>
             {index < 4 ? <View style={styles.divider} /> : null}
           </View>
         ))}
@@ -165,10 +175,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
   },
   quickRow: {
+    gap: 10,
+    paddingVertical: 12,
+  },
+  quickMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
   },
   quickDot: {
     width: 10,
@@ -187,6 +200,9 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     fontSize: 12,
     marginTop: 4,
+  },
+  quickActions: {
+    marginLeft: 22,
   },
   divider: {
     height: 1,

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -15,16 +16,32 @@ import { Colors } from '@/constants/theme';
 import { useAdminPortal } from '@/context/AdminPortalContext';
 import { ADMIN_DEMO_CREDENTIALS } from '@/data/adminPortalMock';
 
+type LoginRole = keyof typeof ADMIN_DEMO_CREDENTIALS;
+
 export default function AdminLoginScreen() {
   const router = useRouter();
-  const { isAuthenticated, login } = useAdminPortal();
-  const [email, setEmail] = useState(ADMIN_DEMO_CREDENTIALS.email);
-  const [password, setPassword] = useState(ADMIN_DEMO_CREDENTIALS.password);
+  const { isReady, isAuthenticated, login } = useAdminPortal();
+  const [loginRole, setLoginRole] = useState<LoginRole>('official');
+  const [email, setEmail] = useState(ADMIN_DEMO_CREDENTIALS.official.email);
+  const [password, setPassword] = useState(ADMIN_DEMO_CREDENTIALS.official.password);
   const [error, setError] = useState('');
+
+  if (!isReady) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={Colors.yellow} />
+          <Text style={styles.loadingText}>Loading admin portal…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (isAuthenticated) {
     return <Redirect href="/admin/dashboard" />;
   }
+
+  const activeCredentials = ADMIN_DEMO_CREDENTIALS[loginRole];
 
   const handleLogin = () => {
     const success = login(email, password);
@@ -34,7 +51,7 @@ export default function AdminLoginScreen() {
       return;
     }
 
-    setError('Invalid credentials. Use the demo city official access below.');
+    setError('Invalid credentials. Use one of the demo staff logins below.');
   };
 
   return (
@@ -45,9 +62,9 @@ export default function AdminLoginScreen() {
       >
         <View style={styles.headerWrap}>
           <Text style={styles.brand}>StreetSense</Text>
-          <Text style={styles.headerTitle}>City Official Admin Portal</Text>
+          <Text style={styles.headerTitle}>City Staff Admin Portal</Text>
           <Text style={styles.headerSubtitle}>
-            Secure access for triage, dispatch, and resolution management.
+            Secure access for city officials and field employees to manage repairs.
           </Text>
         </View>
 
@@ -56,10 +73,33 @@ export default function AdminLoginScreen() {
             <Ionicons name="shield-checkmark" size={26} color={Colors.yellow} />
           </View>
 
-          <Text style={styles.cardTitle}>Official Sign In</Text>
+          <Text style={styles.cardTitle}>Staff Sign In</Text>
           <Text style={styles.cardSubtitle}>
-            Demo credentials are prefilled so you can open the isolated portal immediately.
+            Choose a city official or employee login and open the shared operations workspace.
           </Text>
+
+          <View style={styles.roleRow}>
+            {(['official', 'employee'] as LoginRole[]).map((role) => {
+              const isActive = loginRole === role;
+              return (
+                <TouchableOpacity
+                  key={role}
+                  style={[styles.roleChip, isActive && styles.roleChipActive]}
+                  activeOpacity={0.84}
+                  onPress={() => {
+                    setLoginRole(role);
+                    setEmail(ADMIN_DEMO_CREDENTIALS[role].email);
+                    setPassword(ADMIN_DEMO_CREDENTIALS[role].password);
+                    setError('');
+                  }}
+                >
+                  <Text style={[styles.roleChipText, isActive && styles.roleChipTextActive]}>
+                    {role === 'official' ? 'City Official' : 'Employee'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>City Email</Text>
@@ -69,7 +109,7 @@ export default function AdminLoginScreen() {
               style={styles.input}
               autoCapitalize="none"
               keyboardType="email-address"
-              placeholder="admin@atlanta.gov"
+              placeholder={activeCredentials.email}
               placeholderTextColor={Colors.muted}
             />
           </View>
@@ -81,7 +121,7 @@ export default function AdminLoginScreen() {
               onChangeText={setPassword}
               style={styles.input}
               secureTextEntry
-              placeholder="StreetOps2026"
+              placeholder={activeCredentials.password}
               placeholderTextColor={Colors.muted}
             />
           </View>
@@ -92,10 +132,21 @@ export default function AdminLoginScreen() {
             <Text style={styles.primaryButtonText}>Enter Admin Portal</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            activeOpacity={0.84}
+            onPress={() => router.replace('/(tabs)')}
+          >
+            <Ionicons name="arrow-back-outline" size={16} color={Colors.white} />
+            <Text style={styles.secondaryButtonText}>Back to Reporting Dashboard</Text>
+          </TouchableOpacity>
+
           <View style={styles.demoPanel}>
             <Text style={styles.demoLabel}>Demo access</Text>
-            <Text style={styles.demoText}>Email: {ADMIN_DEMO_CREDENTIALS.email}</Text>
-            <Text style={styles.demoText}>Password: {ADMIN_DEMO_CREDENTIALS.password}</Text>
+            <Text style={styles.demoText}>
+              {activeCredentials.role === 'official' ? 'Official' : 'Employee'}: {activeCredentials.email}
+            </Text>
+            <Text style={styles.demoText}>Password: {activeCredentials.password}</Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -107,6 +158,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.black,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    color: Colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
   },
   flex: {
     flex: 1,
@@ -161,6 +224,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
+  roleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  roleChip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 11,
+    borderRadius: 999,
+    backgroundColor: Colors.dark3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  roleChipActive: {
+    backgroundColor: 'rgba(255,252,0,0.10)',
+    borderColor: 'rgba(255,252,0,0.20)',
+  },
+  roleChipText: {
+    color: Colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  roleChipTextActive: {
+    color: Colors.yellow,
+  },
   inputGroup: {
     gap: 8,
   },
@@ -195,6 +283,22 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontSize: 15,
     fontWeight: '800',
+  },
+  secondaryButton: {
+    borderRadius: 999,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: Colors.dark3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  secondaryButtonText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '700',
   },
   demoPanel: {
     backgroundColor: 'rgba(255,255,255,0.04)',

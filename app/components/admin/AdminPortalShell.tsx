@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,6 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { type ReactNode } from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +21,7 @@ interface AdminPortalShellProps {
   title: string;
   subtitle: string;
   activeSection: AdminSection;
-  children: React.ReactNode;
+  children: ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
@@ -37,7 +39,18 @@ export function AdminPortalShell({
   contentContainerStyle,
 }: AdminPortalShellProps) {
   const router = useRouter();
-  const { isAuthenticated, official, logout } = useAdminPortal();
+  const { isReady, isAuthenticated, user, logout } = useAdminPortal();
+
+  if (!isReady) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={Colors.yellow} />
+          <Text style={styles.loadingText}>Opening admin portal…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Redirect href="/admin" />;
@@ -49,20 +62,33 @@ export function AdminPortalShell({
         <View>
           <Text style={styles.brand}>StreetSense Admin</Text>
           <Text style={styles.officialMeta}>
-            {official?.title} · {official?.name}
+            {user?.title} · {user?.name}
+          </Text>
+          <Text style={styles.roleMeta}>
+            {user?.role === 'employee' ? 'Field Employee Access' : 'City Official Access'}
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={() => {
-            logout();
-            router.replace('/admin');
-          }}
-        >
-          <Ionicons name="log-out-outline" size={16} color={Colors.yellow} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={styles.appButton}
+            activeOpacity={0.8}
+            onPress={() => router.replace('/(tabs)')}
+          >
+            <Ionicons name="apps-outline" size={16} color={Colors.white} />
+            <Text style={styles.appButtonText}>Reporting App</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            activeOpacity={0.8}
+            onPress={() => {
+              logout();
+              router.replace('/admin');
+            }}
+          >
+            <Ionicons name="log-out-outline" size={16} color={Colors.yellow} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -70,7 +96,7 @@ export function AdminPortalShell({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.heroEyebrow}>CITY OFFICIAL PORTAL</Text>
+          <Text style={styles.heroEyebrow}>CITY STAFF PORTAL</Text>
           <Text style={styles.heroTitle}>{title}</Text>
           <Text style={styles.heroSubtitle}>{subtitle}</Text>
         </View>
@@ -104,6 +130,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.black,
   },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: Colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -122,6 +159,32 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     fontSize: 12,
     marginTop: 2,
+  },
+  roleMeta: {
+    color: Colors.yellow,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  appButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: Colors.dark3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  appButtonText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
   logoutButton: {
     flexDirection: 'row',

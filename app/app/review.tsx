@@ -41,6 +41,7 @@ export default function ReviewScreen() {
       severityScore: numScore,
       status: 'open',
       userId: deviceUuid ?? '',
+      publicUpdate: null,
     });
     router.replace('/(tabs)');
   };

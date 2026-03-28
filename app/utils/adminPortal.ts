@@ -1,3 +1,4 @@
+import { Alert, Linking, Platform } from 'react-native';
 import { Colors } from '@/constants/theme';
 import type {
   AdminPriority,
@@ -77,4 +78,71 @@ export function getDashboardStats(reports: AdminReport[]) {
     p1: reports.filter((report) => report.priority === 'P1').length,
     triageReady: reports.filter((report) => report.status === 'new').length,
   };
+}
+
+interface OpenMapsOptions {
+  label: string;
+  query: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+async function openGoogleMaps({
+  query,
+  latitude,
+  longitude,
+}: OpenMapsOptions) {
+  const encodedQuery = encodeURIComponent(query);
+  const googleAppUrl =
+    latitude !== undefined && longitude !== undefined
+      ? `comgooglemaps://?center=${latitude},${longitude}&q=${encodedQuery}`
+      : `comgooglemaps://?q=${encodedQuery}`;
+  const googleWebUrl =
+    latitude !== undefined && longitude !== undefined
+      ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`;
+
+  const canOpenGoogleApp = await Linking.canOpenURL(googleAppUrl);
+  await Linking.openURL(canOpenGoogleApp ? googleAppUrl : googleWebUrl);
+}
+
+async function openAppleMaps({
+  query,
+  latitude,
+  longitude,
+}: OpenMapsOptions) {
+  const encodedQuery = encodeURIComponent(query);
+  const appleUrl =
+    latitude !== undefined && longitude !== undefined
+      ? `http://maps.apple.com/?ll=${latitude},${longitude}&q=${encodedQuery}`
+      : `http://maps.apple.com/?q=${encodedQuery}`;
+
+  await Linking.openURL(appleUrl);
+}
+
+export function openMapsChooser(options: OpenMapsOptions) {
+  const buttons = [
+    {
+      text: 'Google Maps',
+      onPress: () => {
+        void openGoogleMaps(options);
+      },
+    },
+    ...(Platform.OS === 'ios'
+      ? [
+          {
+            text: 'Apple Maps',
+            onPress: () => {
+              void openAppleMaps(options);
+            },
+          },
+        ]
+      : []),
+    {
+      text: 'Cancel',
+      style: 'cancel' as const,
+    },
+  ];
+
+  Alert.alert(`Open ${options.label}`, 'Choose a maps app', buttons);
 }

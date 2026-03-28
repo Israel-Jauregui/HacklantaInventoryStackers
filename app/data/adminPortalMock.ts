@@ -1,4 +1,4 @@
-import { MOCK_REPORTS } from '@/data/mockReports';
+import { MOCK_REPORTS, type PublicReportUpdate } from '@/data/mockReports';
 import { getDistrict, getPriorityFromScore } from '@/utils/adminPortal';
 
 export type AdminWorkflowStatus =
@@ -9,6 +9,7 @@ export type AdminWorkflowStatus =
   | 'resolved';
 
 export type AdminPriority = 'P1' | 'P2' | 'P3';
+export type AdminRole = 'official' | 'employee';
 
 export interface AdminNote {
   id: string;
@@ -37,6 +38,7 @@ export interface AdminReport {
   reportedBy: string;
   createdAt: string;
   updatedAt: string;
+  publicUpdate: PublicReportUpdate | null;
   notes: AdminNote[];
 }
 
@@ -47,6 +49,8 @@ const TEAMS = [
   'Roadway Maintenance 12',
   'Night Repair Team',
 ] as const;
+
+export const ADMIN_TEAMS = [...TEAMS];
 
 const STATUSES: AdminWorkflowStatus[] = [
   'new',
@@ -106,6 +110,7 @@ const EXTRA_REPORTS: AdminReport[] = [
     reportedBy: 'Dispatch Intake',
     createdAt: '2026-03-28T07:20:00.000Z',
     updatedAt: '2026-03-28T08:10:00.000Z',
+    publicUpdate: null,
     notes: [
       {
         id: 'note-extra-1',
@@ -136,13 +141,28 @@ const EXTRA_REPORTS: AdminReport[] = [
     reportedBy: 'L. Turner',
     createdAt: '2026-03-28T08:30:00.000Z',
     updatedAt: '2026-03-28T08:30:00.000Z',
+    publicUpdate: null,
     notes: [],
   },
 ];
 
 export const ADMIN_DEMO_CREDENTIALS = {
-  email: 'admin@atlanta.gov',
-  password: 'StreetOps2026',
+  official: {
+    role: 'official' as const,
+    email: 'admin@atlanta.gov',
+    password: 'StreetOps2026',
+    name: 'Jordan Ellis',
+    title: 'City Operations Coordinator',
+    team: null,
+  },
+  employee: {
+    role: 'employee' as const,
+    email: 'employee@atlanta.gov',
+    password: 'FieldOps2026',
+    name: 'Marcus Reed',
+    title: 'Field Operations Employee',
+    team: 'Roadway Maintenance 12',
+  },
 } as const;
 
 export const ADMIN_PORTAL_REPORTS: AdminReport[] = [
@@ -152,7 +172,8 @@ export const ADMIN_PORTAL_REPORTS: AdminReport[] = [
     const priority = getPriorityFromScore(report.severityScore);
     const createdAt = CREATED_AT[index % CREATED_AT.length];
     const updatedAt =
-      status === 'resolved' ? '2026-03-28T07:55:00.000Z' : '2026-03-28T08:22:00.000Z';
+      report.publicUpdate?.updatedAt ??
+      (status === 'resolved' ? '2026-03-28T07:55:00.000Z' : '2026-03-28T08:22:00.000Z');
 
     return {
       id: report.id,
@@ -171,7 +192,18 @@ export const ADMIN_PORTAL_REPORTS: AdminReport[] = [
       reportedBy: REPORTERS[index % REPORTERS.length],
       createdAt,
       updatedAt,
+      publicUpdate: report.publicUpdate ?? null,
       notes: [
+        ...(report.publicUpdate
+          ? [
+              {
+                id: `note-${report.id}-public`,
+                author: `${report.publicUpdate.authorName} (${report.publicUpdate.authorRole === 'employee' ? 'Employee' : 'Official'})`,
+                message: `Public update: ${report.publicUpdate.message}`,
+                createdAt: report.publicUpdate.updatedAt,
+              },
+            ]
+          : []),
         {
           id: `note-${report.id}-1`,
           author: 'J. Fields',

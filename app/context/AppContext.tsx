@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { MOCK_REPORTS, type Report } from '@/data/mockReports';
 
 const STORAGE_KEY = 'device_uuid';
+const REPORTS_STORAGE_KEY = 'streetsense_reports';
 
 interface AppContextValue {
   deviceUuid: string | null;
@@ -12,6 +13,10 @@ interface AppContextValue {
   reports: Report[];
   addReport: (report: Report) => void;
   updateReportStatus: (id: string, status: 'open' | 'fixed') => void;
+  updatePublicReport: (
+    id: string,
+    patch: Partial<Pick<Report, 'status' | 'publicUpdate'>>
+  ) => void;
 }
 
 const AppContext = createContext<AppContextValue>({
@@ -21,6 +26,7 @@ const AppContext = createContext<AppContextValue>({
   reports: [],
   addReport: () => {},
   updateReportStatus: () => {},
+  updatePublicReport: () => {},
 });
 
 export function useApp() {
@@ -31,6 +37,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
+  const [hasLoadedReports, setHasLoadedReports] = useState(false);
 
   // Initialize device UUID and seed mock data
   useEffect(() => {
@@ -42,13 +49,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       setDeviceUuid(uuid);
 
+      const storedReports = await AsyncStorage.getItem(REPORTS_STORAGE_KEY);
+      const baseReports = storedReports
+        ? (JSON.parse(storedReports) as Report[])
+        : MOCK_REPORTS;
+
       // Patch the first 3 mock reports to belong to this device so profile isn't empty
-      const seeded = MOCK_REPORTS.map((r, i) =>
+      const seeded = baseReports.map((r, i) =>
         i < 3 ? { ...r, userId: uuid! } : { ...r }
       );
       setReports(seeded);
+      setHasLoadedReports(true);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!hasLoadedReports) return;
+    void AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
+  }, [hasLoadedReports, reports]);
 
   const addReport = useCallback((report: Report) => {
     setReports((prev) => [report, ...prev]);
@@ -63,9 +81,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const updatePublicReport = useCallback(
+    (id: string, patch: Partial<Pick<Report, 'status' | 'publicUpdate'>>) => {
+      setReports((prev) =>
+        prev.map((report) =>
+          report.id === id
+            ? {
+                ...report,
+                ...patch,
+              }
+            : report
+        )
+      );
+    },
+    []
+  );
+
   return (
     <AppContext.Provider
-      value={{ deviceUuid, isAdmin, setIsAdmin, reports, addReport, updateReportStatus }}
+      value={{
+        deviceUuid,
+        isAdmin,
+        setIsAdmin,
+        reports,
+        addReport,
+        updateReportStatus,
+        updatePublicReport,
+      }}
     >
       {children}
     </AppContext.Provider>
