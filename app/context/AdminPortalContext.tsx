@@ -25,7 +25,6 @@ interface AdminPortalContextValue {
   isAuthenticated: boolean;
   user: AdminUser | null;
   canAssignPriority: boolean;
-  canManageAssignments: boolean;
   reports: AdminReport[];
   login: (email: string, password: string) => boolean;
   logout: () => void;
@@ -41,7 +40,6 @@ const AdminPortalContext = createContext<AdminPortalContextValue>({
   isAuthenticated: false,
   user: null,
   canAssignPriority: false,
-  canManageAssignments: false,
   reports: [],
   login: () => false,
   logout: () => {},
@@ -66,7 +64,7 @@ function syncPublicUpdateNote(
   if (!publicUpdate) return notes;
 
   const nextMessage = `Public update: ${publicUpdate.message}`;
-  const nextAuthor = `${publicUpdate.authorName} (${publicUpdate.authorRole === 'employee' ? 'Employee' : 'Official'})`;
+  const nextAuthor = `${publicUpdate.authorName} (Official)`;
   const alreadySynced = notes.some(
     (note) => note.message === nextMessage && note.createdAt === publicUpdate.updatedAt
   );
@@ -207,7 +205,7 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
   };
 
   const assignPriority = (id: string, priority: AdminPriority) => {
-    if (user?.role !== 'official') return;
+    if (!user) return;
 
     setReports((currentReports) =>
       currentReports.map((report) =>
@@ -223,7 +221,7 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
   };
 
   const assignTeam = (id: string, team: string) => {
-    if (user?.role !== 'employee') return;
+    if (!user) return;
 
     const trimmedTeam = team.trim();
     if (!trimmedTeam) return;
@@ -240,7 +238,7 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
               notes: [
                 {
                   id: `${report.id}-assign-${Date.now()}`,
-                  author: `${user.name} (${user.team ?? 'Field Ops'})`,
+                  author: `${user.name} (${user.team})`,
                   message: `Assignment updated to ${trimmedTeam}.`,
                   createdAt: nextTimestamp,
                 },
@@ -284,7 +282,7 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
 
     const nextUpdatedAt = new Date().toISOString();
     const nextPublicUpdate: NonNullable<AdminReport['publicUpdate']> = {
-      authorRole: user.role,
+      authorRole: 'official',
       authorName: user.name,
       message: trimmedMessage,
       updatedAt: nextUpdatedAt,
@@ -312,8 +310,7 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
     isReady,
     isAuthenticated: Boolean(user),
     user,
-    canAssignPriority: user?.role === 'official',
-    canManageAssignments: user?.role === 'employee',
+    canAssignPriority: Boolean(user),
     reports,
     login,
     logout,

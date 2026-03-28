@@ -9,7 +9,7 @@ export type AdminWorkflowStatus =
   | 'resolved';
 
 export type AdminPriority = 'P1' | 'P2' | 'P3';
-export type AdminRole = 'official' | 'employee';
+export type AdminRole = 'official';
 
 export interface AdminNote {
   id: string;
@@ -153,15 +153,7 @@ export const ADMIN_DEMO_CREDENTIALS = {
     password: 'StreetOps2026',
     name: 'Jordan Ellis',
     title: 'City Operations Coordinator',
-    team: null,
-  },
-  employee: {
-    role: 'employee' as const,
-    email: 'employee@atlanta.gov',
-    password: 'FieldOps2026',
-    name: 'Marcus Reed',
-    title: 'Field Operations Employee',
-    team: 'Roadway Maintenance 12',
+    team: 'City Operations',
   },
 } as const;
 
@@ -198,7 +190,7 @@ export const ADMIN_PORTAL_REPORTS: AdminReport[] = [
           ? [
               {
                 id: `note-${report.id}-public`,
-                author: `${report.publicUpdate.authorName} (${report.publicUpdate.authorRole === 'employee' ? 'Employee' : 'Official'})`,
+                author: `${report.publicUpdate.authorName} (Official)`,
                 message: `Public update: ${report.publicUpdate.message}`,
                 createdAt: report.publicUpdate.updatedAt,
               },

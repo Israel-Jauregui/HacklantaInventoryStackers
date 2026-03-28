@@ -16,12 +16,9 @@ import { Colors } from '@/constants/theme';
 import { useAdminPortal } from '@/context/AdminPortalContext';
 import { ADMIN_DEMO_CREDENTIALS } from '@/data/adminPortalMock';
 
-type LoginRole = keyof typeof ADMIN_DEMO_CREDENTIALS;
-
 export default function AdminLoginScreen() {
   const router = useRouter();
   const { isReady, isAuthenticated, login } = useAdminPortal();
-  const [loginRole, setLoginRole] = useState<LoginRole>('official');
   const [email, setEmail] = useState(ADMIN_DEMO_CREDENTIALS.official.email);
   const [password, setPassword] = useState(ADMIN_DEMO_CREDENTIALS.official.password);
   const [error, setError] = useState('');
@@ -41,7 +38,7 @@ export default function AdminLoginScreen() {
     return <Redirect href="/admin/dashboard" />;
   }
 
-  const activeCredentials = ADMIN_DEMO_CREDENTIALS[loginRole];
+  const activeCredentials = ADMIN_DEMO_CREDENTIALS.official;
 
   const handleLogin = () => {
     const success = login(email, password);
@@ -51,7 +48,7 @@ export default function AdminLoginScreen() {
       return;
     }
 
-    setError('Invalid credentials. Use one of the demo staff logins below.');
+    setError('Invalid credentials. Use the demo city official login below.');
   };
 
   return (
@@ -62,9 +59,9 @@ export default function AdminLoginScreen() {
       >
         <View style={styles.headerWrap}>
           <Text style={styles.brand}>StreetSense</Text>
-          <Text style={styles.headerTitle}>City Staff Admin Portal</Text>
+          <Text style={styles.headerTitle}>City Official Admin Portal</Text>
           <Text style={styles.headerSubtitle}>
-            Secure access for city officials and field employees to manage repairs.
+            Secure access for city officials to manage reports, assignments, and repair progress.
           </Text>
         </View>
 
@@ -73,33 +70,10 @@ export default function AdminLoginScreen() {
             <Ionicons name="shield-checkmark" size={26} color={Colors.yellow} />
           </View>
 
-          <Text style={styles.cardTitle}>Staff Sign In</Text>
+          <Text style={styles.cardTitle}>Official Sign In</Text>
           <Text style={styles.cardSubtitle}>
-            Choose a city official or employee login and open the shared operations workspace.
+            Sign in with the city official account to open the internal operations workspace.
           </Text>
-
-          <View style={styles.roleRow}>
-            {(['official', 'employee'] as LoginRole[]).map((role) => {
-              const isActive = loginRole === role;
-              return (
-                <TouchableOpacity
-                  key={role}
-                  style={[styles.roleChip, isActive && styles.roleChipActive]}
-                  activeOpacity={0.84}
-                  onPress={() => {
-                    setLoginRole(role);
-                    setEmail(ADMIN_DEMO_CREDENTIALS[role].email);
-                    setPassword(ADMIN_DEMO_CREDENTIALS[role].password);
-                    setError('');
-                  }}
-                >
-                  <Text style={[styles.roleChipText, isActive && styles.roleChipTextActive]}>
-                    {role === 'official' ? 'City Official' : 'Employee'}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>City Email</Text>
@@ -143,9 +117,7 @@ export default function AdminLoginScreen() {
 
           <View style={styles.demoPanel}>
             <Text style={styles.demoLabel}>Demo access</Text>
-            <Text style={styles.demoText}>
-              {activeCredentials.role === 'official' ? 'Official' : 'Employee'}: {activeCredentials.email}
-            </Text>
+            <Text style={styles.demoText}>City Official: {activeCredentials.email}</Text>
             <Text style={styles.demoText}>Password: {activeCredentials.password}</Text>
           </View>
         </View>
@@ -223,31 +195,6 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     fontSize: 13,
     lineHeight: 20,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  roleChip: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 11,
-    borderRadius: 999,
-    backgroundColor: Colors.dark3,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  roleChipActive: {
-    backgroundColor: 'rgba(255,252,0,0.10)',
-    borderColor: 'rgba(255,252,0,0.20)',
-  },
-  roleChipText: {
-    color: Colors.muted,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  roleChipTextActive: {
-    color: Colors.yellow,
   },
   inputGroup: {
     gap: 8,

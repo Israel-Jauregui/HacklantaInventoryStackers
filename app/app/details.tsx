@@ -100,9 +100,7 @@ export default function DetailsScreen() {
             </View>
             <Text style={styles.updateMessage}>{report.publicUpdate.message}</Text>
             <Text style={styles.updateMeta}>
-              {report.publicUpdate.authorName} ·{' '}
-              {report.publicUpdate.authorRole === 'employee' ? 'Employee' : 'City Official'} ·{' '}
-              {publicUpdateTimestamp}
+              {report.publicUpdate.authorName} · City Official · {publicUpdateTimestamp}
             </Text>
           </View>
         ) : null}

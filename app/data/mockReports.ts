@@ -1,5 +1,5 @@
 export interface PublicReportUpdate {
-  authorRole: 'employee' | 'official';
+  authorRole: 'official';
   authorName: string;
   message: string;
   updatedAt: string;
@@ -40,9 +40,9 @@ export const MOCK_REPORTS: Report[] = [
     status: 'fixed',
     userId: DEMO_USER,
     publicUpdate: {
-      authorRole: 'employee',
-      authorName: 'Roadway Maintenance 12',
-      message: 'Crew patched the damaged section and reopened the lane after inspection.',
+      authorRole: 'official',
+      authorName: 'Jordan Ellis',
+      message: 'Repair work has been completed and the damaged section has been reopened after inspection.',
       updatedAt: '2026-03-28T07:55:00.000Z',
     },
   },
@@ -72,9 +72,9 @@ export const MOCK_REPORTS: Report[] = [
     status: 'fixed',
     userId: 'other-user-001',
     publicUpdate: {
-      authorRole: 'employee',
-      authorName: 'Rapid Patch Unit 4',
-      message: 'Temporary repair completed. Full resurfacing remains scheduled for next cycle.',
+      authorRole: 'official',
+      authorName: 'Jordan Ellis',
+      message: 'Temporary repair has been completed. Full resurfacing remains scheduled for the next cycle.',
       updatedAt: '2026-03-27T16:18:00.000Z',
     },
   },

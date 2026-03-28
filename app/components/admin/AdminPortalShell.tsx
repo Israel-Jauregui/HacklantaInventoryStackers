@@ -64,9 +64,7 @@ export function AdminPortalShell({
           <Text style={styles.officialMeta}>
             {user?.title} · {user?.name}
           </Text>
-          <Text style={styles.roleMeta}>
-            {user?.role === 'employee' ? 'Field Employee Access' : 'City Official Access'}
-          </Text>
+          <Text style={styles.roleMeta}>City Official Access</Text>
         </View>
         <View style={styles.actionsRow}>
           <TouchableOpacity

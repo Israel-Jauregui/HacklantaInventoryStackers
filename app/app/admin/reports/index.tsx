@@ -20,8 +20,7 @@ type Filter = (typeof FILTERS)[number];
 
 export default function AdminReportsScreen() {
   const router = useRouter();
-  const { reports, user } = useAdminPortal();
-  const isEmployee = user?.role === 'employee';
+  const { reports } = useAdminPortal();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
 
@@ -42,11 +41,7 @@ export default function AdminReportsScreen() {
   return (
     <AdminPortalShell
       title="Report Queue"
-      subtitle={
-        isEmployee
-          ? 'Receive new reports, manage crew ownership, and open each case to update the internal thread.'
-          : 'Review incoming reports, inspect ownership, and open case details for oversight.'
-      }
+      subtitle="Review incoming reports, inspect ownership, and open case details for action."
       activeSection="reports"
     >
       <View style={styles.searchWrap}>
@@ -79,9 +74,7 @@ export default function AdminReportsScreen() {
       <View style={styles.listWrap}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>{filteredReports.length} reports</Text>
-          <Text style={styles.listHint}>
-            {isEmployee ? 'Crew intake and dispatch queue' : 'Official oversight queue'}
-          </Text>
+          <Text style={styles.listHint}>Official oversight queue</Text>
         </View>
 
         {filteredReports.map((report) => (

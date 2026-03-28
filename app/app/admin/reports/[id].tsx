@@ -37,8 +37,6 @@ export default function AdminReportDetailScreen() {
   const {
     reports,
     user,
-    canAssignPriority,
-    canManageAssignments,
     updateStatus,
     assignPriority,
     assignTeam,
@@ -72,10 +70,8 @@ export default function AdminReportDetailScreen() {
     );
   }
 
-  const assignmentOptions = user?.team
-    ? [user.team, ...ADMIN_TEAMS.filter((team) => team !== user.team)]
-    : ADMIN_TEAMS;
-  const canShowOfficialFixAction = user?.role === 'official';
+  const assignmentOptions = ADMIN_TEAMS;
+  const canShowOfficialFixAction = Boolean(user);
 
   return (
     <AdminPortalShell
@@ -172,9 +168,7 @@ export default function AdminReportDetailScreen() {
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Assignment Workflow</Text>
         <Text style={styles.helperText}>
-          {canManageAssignments
-            ? 'Route this report to the correct field crew and keep dispatch ownership current.'
-            : 'City officials can review assignment ownership while employees manage dispatch routing.'}
+          Route this report to the correct field crew and keep dispatch ownership current.
         </Text>
 
         <View style={styles.assignmentCard}>
@@ -185,79 +179,59 @@ export default function AdminReportDetailScreen() {
           </Text>
         </View>
 
-        {canManageAssignments ? (
-          <View style={styles.assignmentGrid}>
-            {assignmentOptions.map((team) => {
-              const isActive = report.assignedTeam === team;
-              return (
-                <TouchableOpacity
-                  key={team}
-                  style={[styles.assignmentChip, isActive && styles.assignmentChipActive]}
-                  activeOpacity={0.84}
-                  onPress={() => assignTeam(report.id, team)}
-                >
-                  <Text style={[styles.assignmentChipText, isActive && styles.assignmentChipTextActive]}>
-                    {team}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={styles.readOnlyBanner}>
-            <Ionicons name="eye-outline" size={14} color={Colors.yellow} />
-            <Text style={styles.readOnlyText}>
-              Assignment changes are handled by city employees. Officials can monitor crew ownership here.
-            </Text>
-          </View>
-        )}
+        <View style={styles.assignmentGrid}>
+          {assignmentOptions.map((team) => {
+            const isActive = report.assignedTeam === team;
+            return (
+              <TouchableOpacity
+                key={team}
+                style={[styles.assignmentChip, isActive && styles.assignmentChipActive]}
+                activeOpacity={0.84}
+                onPress={() => assignTeam(report.id, team)}
+              >
+                <Text style={[styles.assignmentChipText, isActive && styles.assignmentChipTextActive]}>
+                  {team}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Priority Assignment</Text>
-        {canAssignPriority ? (
-          <View style={styles.priorityRow}>
-            {PRIORITY_OPTIONS.map((priority) => {
-              const isActive = report.priority === priority;
-              return (
-                <TouchableOpacity
-                  key={priority}
+        <View style={styles.priorityRow}>
+          {PRIORITY_OPTIONS.map((priority) => {
+            const isActive = report.priority === priority;
+            return (
+              <TouchableOpacity
+                key={priority}
+                style={[
+                  styles.priorityChip,
+                  {
+                    borderColor: isActive ? getPriorityColor(priority) : 'rgba(255,255,255,0.08)',
+                    backgroundColor: isActive ? `${getPriorityColor(priority)}18` : Colors.dark3,
+                  },
+                ]}
+                activeOpacity={0.84}
+                onPress={() => assignPriority(report.id, priority)}
+              >
+                <Text
                   style={[
-                    styles.priorityChip,
-                    {
-                      borderColor: isActive ? getPriorityColor(priority) : 'rgba(255,255,255,0.08)',
-                      backgroundColor: isActive ? `${getPriorityColor(priority)}18` : Colors.dark3,
-                    },
+                    styles.priorityChipText,
+                    { color: isActive ? getPriorityColor(priority) : Colors.muted },
                   ]}
-                  activeOpacity={0.84}
-                  onPress={() => assignPriority(report.id, priority)}
                 >
-                  <Text
-                    style={[
-                      styles.priorityChipText,
-                      { color: isActive ? getPriorityColor(priority) : Colors.muted },
-                    ]}
-                  >
-                    {priority}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={styles.readOnlyBanner}>
-            <Ionicons name="lock-closed-outline" size={14} color={Colors.yellow} />
-            <Text style={styles.readOnlyText}>
-              Only city officials can change priority. Employees can still update status and post public fix notes.
-            </Text>
-          </View>
-        )}
+                  {priority}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>
-          {user?.role === 'employee' ? 'Public Fix Update' : 'Public Status Update'}
-        </Text>
+        <Text style={styles.sectionTitle}>Public Status Update</Text>
         <Text style={styles.helperText}>
           This message is visible to city officials in the portal and to residents in the reporting app.
         </Text>
@@ -266,9 +240,7 @@ export default function AdminReportDetailScreen() {
           <View style={styles.publicUpdateCard}>
             <Text style={styles.publicUpdateMessage}>{report.publicUpdate.message}</Text>
             <Text style={styles.publicUpdateMeta}>
-              {report.publicUpdate.authorName} ·{' '}
-              {report.publicUpdate.authorRole === 'employee' ? 'Employee' : 'City Official'} ·{' '}
-              {formatTimestamp(report.publicUpdate.updatedAt)}
+              {report.publicUpdate.authorName} · City Official · {formatTimestamp(report.publicUpdate.updatedAt)}
             </Text>
           </View>
         ) : (
@@ -282,11 +254,7 @@ export default function AdminReportDetailScreen() {
             value={publicUpdateDraft}
             onChangeText={setPublicUpdateDraft}
             multiline
-            placeholder={
-              user?.role === 'employee'
-                ? 'Add a field repair or progress update for the public'
-                : 'Add a public-facing city update'
-            }
+            placeholder="Add a public-facing city update"
             placeholderTextColor={Colors.muted}
             style={styles.noteInput}
           />
@@ -298,9 +266,7 @@ export default function AdminReportDetailScreen() {
               setPublicUpdateDraft('');
             }}
           >
-            <Text style={styles.noteButtonText}>
-              {user?.role === 'employee' ? 'Publish Fix Update' : 'Publish Public Update'}
-            </Text>
+            <Text style={styles.noteButtonText}>Publish Public Update</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -557,22 +523,6 @@ const styles = StyleSheet.create({
   },
   assignmentChipTextActive: {
     color: Colors.yellow,
-  },
-  readOnlyBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: 'rgba(255,252,0,0.08)',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,252,0,0.12)',
-  },
-  readOnlyText: {
-    flex: 1,
-    color: Colors.white,
-    fontSize: 12,
-    lineHeight: 18,
   },
   helperText: {
     color: Colors.muted,
