@@ -1,0 +1,453 @@
+/* ══════════════════════════════════════
+   LoginPage.css
+   Inherits CSS variables from AdminDashboard.css.
+   ══════════════════════════════════════ */
+
+/* ── OUTER SHELL ── */
+.lp-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+/* ── LEFT BRAND PANEL ── */
+.lp-brand {
+  width: 42%;
+  background: var(--text);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle road-grid texture */
+.lp-brand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 48px, rgba(255,255,255,0.03) 48px, rgba(255,255,255,0.03) 49px),
+    repeating-linear-gradient(90deg, transparent, transparent 48px, rgba(255,255,255,0.03) 48px, rgba(255,255,255,0.03) 49px);
+  pointer-events: none;
+}
+
+.lp-brand-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* Logo */
+.lp-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lp-logo-mark {
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-logo-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.lp-logo-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.lp-logo-sub {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+/* Brand copy */
+.lp-brand-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lp-tagline {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.lp-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.7;
+  max-width: 360px;
+}
+
+/* Stats row */
+.lp-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 28px;
+}
+
+.lp-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lp-stat-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.lp-stat-lbl {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lp-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 24px;
+  flex-shrink: 0;
+}
+
+/* ── RIGHT FORM PANEL ── */
+.lp-form-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  gap: 20px;
+}
+
+/* ── LOGIN CARD ── */
+.lp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  width: 100%;
+  max-width: 440px;
+  transition: transform 0.12s;
+}
+
+/* Error shake animation */
+.lp-card.shake {
+  animation: lp-shake 0.45s ease;
+}
+
+@keyframes lp-shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-7px); }
+  30%       { transform: translateX(7px); }
+  45%       { transform: translateX(-5px); }
+  60%       { transform: translateX(5px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+.lp-card-header {
+  margin-bottom: 28px;
+}
+
+.lp-card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+  letter-spacing: -0.2px;
+}
+
+.lp-card-sub {
+  font-size: 13px;
+  color: var(--text3);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── FORM ── */
+.lp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lp-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lp-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.lp-forgot {
+  font-size: 12px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'IBM Plex Sans', sans-serif;
+  padding: 0;
+}
+
+.lp-forgot:hover { text-decoration: underline; }
+
+/* Input wrapper */
+.lp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: var(--bg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.lp-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(43, 92, 230, 0.12);
+}
+
+.lp-input-wrap.invalid {
+  border-color: var(--red);
+}
+
+.lp-input-wrap.invalid:focus-within {
+  box-shadow: 0 0 0 3px rgba(224, 48, 48, 0.12);
+}
+
+.lp-input-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text3);
+  flex-shrink: 0;
+  margin-left: 12px;
+  pointer-events: none;
+}
+
+.lp-input {
+  flex: 1;
+  height: 42px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--text);
+  padding: 0 12px;
+  outline: none;
+}
+
+.lp-input::placeholder { color: var(--text3); }
+
+.lp-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Password-specific — make room for the toggle button */
+.lp-input-pw { padding-right: 42px; }
+
+.lp-pw-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  color: var(--text3);
+  transition: color 0.13s;
+}
+
+.lp-pw-toggle:hover { color: var(--text2); }
+
+.lp-pw-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Inline field error */
+.lp-field-error {
+  font-size: 11px;
+  color: var(--red);
+  font-weight: 500;
+}
+
+/* Server error banner */
+.lp-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--red-light);
+  border: 1px solid rgba(224, 48, 48, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--red);
+  font-weight: 500;
+}
+
+.lp-error-banner svg { flex-shrink: 0; }
+
+/* Submit button */
+.lp-submit {
+  height: 44px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'IBM Plex Sans', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+  margin-top: 4px;
+}
+
+.lp-submit:hover:not(:disabled) { background: var(--accent2); }
+.lp-submit:active:not(:disabled) { transform: scale(0.98); }
+
+.lp-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.lp-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: lp-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes lp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── DEMO HINT ── */
+.lp-demo-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.lp-demo-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.lp-demo-fill {
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: 1px solid rgba(43, 92, 230, 0.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 500;
+  transition: background 0.13s;
+}
+
+.lp-demo-fill:hover { background: rgba(43, 92, 230, 0.15); }
+
+/* ── FOOTER ── */
+.lp-footer {
+  font-size: 11px;
+  color: var(--text3);
+  text-align: center;
+  max-width: 440px;
+}
+
+/* ── RESPONSIVE — collapse brand panel on small screens ── */
+@media (max-width: 768px) {
+  .lp-shell {
+    flex-direction: column;
+  }
+
+  .lp-brand {
+    width: 100%;
+    padding: 32px 24px;
+  }
+
+  .lp-tagline {
+    font-size: 24px;
+  }
+
+  .lp-stats {
+    display: none;
+  }
+
+  .lp-form-side {
+    padding: 32px 20px;
+    justify-content: flex-start;
+  }
+
+  .lp-card {
+    padding: 28px 24px;
+  }
+}
