@@ -1,11 +1,13 @@
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, FlatList } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import type { Report } from '@/data/mockReports';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import * as Location from 'expo-location';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 
 const FILTERS = ['All', 'Critical', 'Open', 'Fixed'] as const;
 type Filter = (typeof FILTERS)[number];
@@ -16,6 +18,21 @@ export default function MapScreen() {
   const { reports } = useApp();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
+  const [userLat, setUserLat] = useState(33.749);
+  const [userLng, setUserLng] = useState(-84.388);
+  const [mapReady, setMapReady] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setUserLat(loc.coords.latitude);
+        setUserLng(loc.coords.longitude);
+      }
+      setMapReady(true);
+    })();
+  }, []);
 
   const filtered = reports.filter((r) => {
     if (activeFilter === 'All') return true;
@@ -37,81 +54,59 @@ export default function MapScreen() {
           <Text style={styles.logo}>StreetSense</Text>
           <Text style={styles.subtitle}>Atlanta, GA</Text>
         </View>
-        <TouchableOpacity style={styles.searchBtn}>
-          <Ionicons name="search" size={18} color={Colors.white} />
-        </TouchableOpacity>
       </View>
 
-      {/* ── Map Placeholder ── */}
+      {/* ── Real Map ── */}
       <View style={styles.mapContainer}>
-        {/* Fake dark-themed map with roads and pins */}
-        <View style={styles.mapBg}>
-          {/* Horizontal roads */}
-          <View style={[styles.road, styles.roadH, { top: '30%' }]} />
-          <View style={[styles.road, styles.roadH, { top: '55%' }]} />
-          <View style={[styles.road, styles.roadH, { top: '80%' }]} />
-          {/* Vertical roads */}
-          <View style={[styles.road, styles.roadV, { left: '25%' }]} />
-          <View style={[styles.road, styles.roadV, { left: '50%' }]} />
-          <View style={[styles.road, styles.roadV, { left: '75%' }]} />
-
-          {/* Map pins */}
-          {reports.slice(0, 5).map((r, i) => {
-            const positions = [
-              { top: '24%', left: '22%' },
-              { top: '48%', left: '47%' },
-              { top: '72%', left: '70%' },
-              { top: '35%', left: '68%' },
-              { top: '65%', left: '28%' },
-            ];
-            const pos = positions[i];
-            return (
-              <TouchableOpacity
+        {!mapReady ? (
+          <View style={styles.mapLoading}>
+            <ActivityIndicator size="large" color={Colors.yellow} />
+          </View>
+        ) : (
+          <MapView
+            provider={PROVIDER_DEFAULT}
+            style={StyleSheet.absoluteFillObject}
+            region={{
+              latitude: userLat,
+              longitude: userLng,
+              latitudeDelta: 0.025,
+              longitudeDelta: 0.025,
+            }}
+            userInterfaceStyle="dark"
+            showsUserLocation
+            showsMyLocationButton={false}
+          >
+            {reports.map((r) => (
+              <Marker
                 key={r.id}
-                style={[styles.mapPin, pos as any]}
+                coordinate={{ latitude: r.location.lat, longitude: r.location.lng }}
+                pinColor={severityColor(r.severityScore)}
                 onPress={() => handleReport(r)}
-              >
-                <View style={[styles.pinDot, { backgroundColor: severityColor(r.severityScore) }]}>
-                  {r.status === 'fixed' && (
-                    <Ionicons name="checkmark" size={8} color={Colors.white} />
-                  )}
-                </View>
-                <View style={styles.pinShadow} />
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* Current location pulse */}
-          <View style={styles.currentLoc}>
-            <View style={styles.currentLocRing} />
-            <View style={styles.currentLocDot} />
-          </View>
-
-          {/* Map label */}
-          <View style={styles.mapLabel}>
-            <Text style={styles.mapLabelText}>{reports.length} reports nearby</Text>
-          </View>
+              />
+            ))}
+          </MapView>
+        )}
+        {/* Map label */}
+        <View style={styles.mapLabel}>
+          <Text style={styles.mapLabelText}>{reports.length} reports nearby</Text>
         </View>
       </View>
 
       {/* ── Filter chips ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
+      <View style={styles.filterRow}>
         {FILTERS.map((f) => (
           <TouchableOpacity
             key={f}
             style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
             onPress={() => setActiveFilter(f)}
+            activeOpacity={0.7}
           >
             <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>
               {f}
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
 
       {/* ── Nearby list ── */}
       <View style={styles.listHeader}>
@@ -218,93 +213,22 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     marginTop: 1,
   },
-  searchBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.dark3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
 
   /* ── Map ── */
   mapContainer: {
     marginHorizontal: 16,
     borderRadius: 18,
+    height: 210,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: Colors.dark2,
   },
-  mapBg: {
-    height: 210,
-    backgroundColor: '#141E14',
-    position: 'relative',
-  },
-  road: {
-    position: 'absolute',
-    backgroundColor: '#252525',
-  },
-  roadH: {
-    left: 0,
-    right: 0,
-    height: 8,
-  },
-  roadV: {
-    top: 0,
-    bottom: 0,
-    width: 8,
-  },
-
-  /* Pins */
-  mapPin: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 5,
-  },
-  pinDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: Colors.black,
+  mapLoading: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pinShadow: {
-    width: 8,
-    height: 4,
-    borderRadius: 4,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    marginTop: 1,
-  },
-
-  /* Current location */
-  currentLoc: {
-    position: 'absolute',
-    top: '48%',
-    left: '48%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 6,
-  },
-  currentLocRing: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,122,255,0.15)',
-    position: 'absolute',
-  },
-  currentLocDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.blue,
-    borderWidth: 2,
-    borderColor: Colors.white,
-  },
-
   mapLabel: {
     position: 'absolute',
     bottom: 10,
@@ -322,13 +246,14 @@ const styles = StyleSheet.create({
 
   /* ── Filters ── */
   filterRow: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
   },
   filterChip: {
     paddingHorizontal: 16,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: Colors.dark3,
     borderWidth: 1,
@@ -340,7 +265,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     color: Colors.muted,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   filterTextActive: {

@@ -4,9 +4,15 @@ import * as Crypto from 'expo-crypto';
 import { MOCK_REPORTS, type Report } from '@/data/mockReports';
 
 const STORAGE_KEY = 'device_uuid';
+const NAME_KEY = 'display_name';
+const AVATAR_KEY = 'avatar_uri';
 
 interface AppContextValue {
   deviceUuid: string | null;
+  displayName: string;
+  setDisplayName: (name: string) => void;
+  avatarUri: string | null;
+  setAvatarUri: (uri: string | null) => void;
   isAdmin: boolean;
   setIsAdmin: (v: boolean) => void;
   reports: Report[];
@@ -16,6 +22,10 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue>({
   deviceUuid: null,
+  displayName: 'StreetSense User',
+  setDisplayName: () => {},
+  avatarUri: null,
+  setAvatarUri: () => {},
   isAdmin: false,
   setIsAdmin: () => {},
   reports: [],
@@ -29,6 +39,8 @@ export function useApp() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
+  const [displayName, setDisplayNameState] = useState('StreetSense User');
+  const [avatarUri, setAvatarUriState] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
 
@@ -42,12 +54,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       setDeviceUuid(uuid);
 
+      // Restore persisted name & avatar
+      const savedName = await AsyncStorage.getItem(NAME_KEY);
+      if (savedName) setDisplayNameState(savedName);
+      const savedAvatar = await AsyncStorage.getItem(AVATAR_KEY);
+      if (savedAvatar) setAvatarUriState(savedAvatar);
+
       // Patch the first 3 mock reports to belong to this device so profile isn't empty
       const seeded = MOCK_REPORTS.map((r, i) =>
         i < 3 ? { ...r, userId: uuid! } : { ...r }
       );
       setReports(seeded);
     })();
+  }, []);
+
+  const setDisplayName = useCallback(async (name: string) => {
+    setDisplayNameState(name);
+    await AsyncStorage.setItem(NAME_KEY, name);
+  }, []);
+
+  const setAvatarUri = useCallback(async (uri: string | null) => {
+    setAvatarUriState(uri);
+    if (uri) await AsyncStorage.setItem(AVATAR_KEY, uri);
+    else await AsyncStorage.removeItem(AVATAR_KEY);
   }, []);
 
   const addReport = useCallback((report: Report) => {
@@ -65,7 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ deviceUuid, isAdmin, setIsAdmin, reports, addReport, updateReportStatus }}
+      value={{ deviceUuid, displayName, setDisplayName, avatarUri, setAvatarUri, isAdmin, setIsAdmin, reports, addReport, updateReportStatus }}
     >
       {children}
     </AppContext.Provider>
