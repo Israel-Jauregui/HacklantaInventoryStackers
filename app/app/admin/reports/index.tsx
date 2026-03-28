@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { MapActionRow } from '@/components/admin/MapActionRow';
@@ -14,15 +14,30 @@ import { AdminPortalShell } from '@/components/admin/AdminPortalShell';
 import { useAdminPortal } from '@/context/AdminPortalContext';
 import { getPriorityColor, getStatusColor, getStatusLabel } from '@/utils/adminPortal';
 
-const FILTERS = ['All', 'P1', 'Open', 'Resolved'] as const;
+const FILTERS = ['All', 'P1', 'Open', 'Resolved', 'Triage'] as const;
 
 type Filter = (typeof FILTERS)[number];
 
 export default function AdminReportsScreen() {
   const router = useRouter();
+  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
   const { reports } = useAdminPortal();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
+
+  useEffect(() => {
+    if (!filterParam) return;
+    const normalized = filterParam.toString().toLowerCase();
+    const map: Record<string, Filter> = {
+      p1: 'P1',
+      open: 'Open',
+      resolved: 'Resolved',
+      triage: 'Triage',
+      all: 'All',
+    };
+    const next = map[normalized];
+    if (next) setActiveFilter(next);
+  }, [filterParam]);
 
   const filteredReports = reports.filter((report) => {
     const matchesQuery =
@@ -35,6 +50,7 @@ export default function AdminReportsScreen() {
     if (activeFilter === 'P1') return report.priority === 'P1';
     if (activeFilter === 'Open') return report.status !== 'resolved';
     if (activeFilter === 'Resolved') return report.status === 'resolved';
+    if (activeFilter === 'Triage') return report.status === 'new';
     return true;
   });
 

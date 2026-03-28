@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -11,6 +12,14 @@ import { getPriorityColor } from '@/utils/adminPortal';
 export default function AdminMapScreen() {
   const router = useRouter();
   const { reports } = useAdminPortal();
+  const mapRef = useRef<MapView | null>(null);
+
+  const sortedReports = useMemo(() => {
+    const order = { P1: 0, P2: 1, P3: 2 } as const;
+    return [...reports].sort(
+      (a, b) => (order[a.priority] ?? 3) - (order[b.priority] ?? 3)
+    );
+  }, [reports]);
 
   const initialRegion = {
     latitude: 33.749,
@@ -18,6 +27,30 @@ export default function AdminMapScreen() {
     latitudeDelta: 0.08,
     longitudeDelta: 0.08,
   };
+
+  const coordinates = useMemo(
+    () =>
+      sortedReports
+        .map((report) => ({
+          latitude: Number(report.location.lat),
+          longitude: Number(report.location.lng),
+        }))
+        .filter(
+          (coord) =>
+            Number.isFinite(coord.latitude) &&
+            Number.isFinite(coord.longitude)
+        ),
+    [sortedReports]
+  );
+
+  useEffect(() => {
+    if (mapRef.current && coordinates.length > 0) {
+      mapRef.current.fitToCoordinates(coordinates, {
+        edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+        animated: true,
+      });
+    }
+  }, [coordinates]);
 
   return (
     <AdminPortalShell
@@ -27,12 +60,21 @@ export default function AdminMapScreen() {
     >
       <View style={styles.mapWrap}>
         <MapView
+          ref={mapRef}
           provider={PROVIDER_DEFAULT}
           style={StyleSheet.absoluteFillObject}
-          initialRegion={initialRegion}
+          initialRegion={
+            coordinates[0]
+              ? {
+                  ...initialRegion,
+                  latitude: coordinates[0].latitude,
+                  longitude: coordinates[0].longitude,
+                }
+              : initialRegion
+          }
           userInterfaceStyle="dark"
         >
-          {reports.map((report) => (
+          {sortedReports.map((report) => (
             <Marker
               key={report.id}
               coordinate={{
@@ -53,8 +95,15 @@ export default function AdminMapScreen() {
         </MapView>
 
         <View style={styles.mapBadge}>
-          <Text style={styles.mapBadgeText}>{reports.length} tracked reports</Text>
+          <Text style={styles.mapBadgeText}>{sortedReports.length} tracked reports</Text>
         </View>
+
+        {sortedReports.length === 0 ? (
+          <View style={styles.mapEmpty}>
+            <Ionicons name="map-outline" size={20} color={Colors.muted} />
+            <Text style={styles.mapEmptyText}>No reports to plot yet</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.legendCard}>
@@ -77,7 +126,7 @@ export default function AdminMapScreen() {
 
       <View style={styles.listCard}>
         <Text style={styles.sectionTitle}>Quick Access</Text>
-        {reports.slice(0, 5).map((report, index) => (
+        {sortedReports.map((report, index) => (
           <View key={report.id}>
             <View style={styles.quickRow}>
               <TouchableOpacity
@@ -107,7 +156,7 @@ export default function AdminMapScreen() {
                 />
               </View>
             </View>
-            {index < 4 ? <View style={styles.divider} /> : null}
+            {index < sortedReports.length - 1 ? <View style={styles.divider} /> : null}
           </View>
         ))}
       </View>
@@ -136,6 +185,21 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 11,
     fontWeight: '700',
+  },
+  mapEmpty: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  mapEmptyText: {
+    color: Colors.muted,
+    fontSize: 12,
   },
   legendCard: {
     backgroundColor: Colors.dark2,

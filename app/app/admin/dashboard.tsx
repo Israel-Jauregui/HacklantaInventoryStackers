@@ -31,22 +31,46 @@ export default function AdminDashboardScreen() {
       activeSection="dashboard"
     >
       <View style={styles.metricGrid}>
-        <View style={styles.metricCard}>
+        <TouchableOpacity
+          style={styles.metricCard}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({ pathname: '/admin/reports', params: { filter: 'open' } })
+          }
+        >
           <Text style={styles.metricValue}>{stats.open}</Text>
           <Text style={styles.metricLabel}>Active Cases</Text>
-        </View>
-        <View style={styles.metricCard}>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.metricCard}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({ pathname: '/admin/reports', params: { filter: 'p1' } })
+          }
+        >
           <Text style={[styles.metricValue, { color: Colors.red }]}>{stats.p1}</Text>
           <Text style={styles.metricLabel}>Priority 1</Text>
-        </View>
-        <View style={styles.metricCard}>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.metricCard}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({ pathname: '/admin/reports', params: { filter: 'triage' } })
+          }
+        >
           <Text style={[styles.metricValue, { color: Colors.blue }]}>{stats.triageReady}</Text>
           <Text style={styles.metricLabel}>Awaiting Triage</Text>
-        </View>
-        <View style={styles.metricCard}>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.metricCard}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({ pathname: '/admin/reports', params: { filter: 'resolved' } })
+          }
+        >
           <Text style={[styles.metricValue, { color: Colors.green }]}>{stats.resolved}</Text>
           <Text style={styles.metricLabel}>Resolved</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.panel}>

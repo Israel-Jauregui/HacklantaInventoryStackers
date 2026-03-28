@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -36,16 +37,13 @@ export default function AdminReportDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const {
     reports,
-    user,
     updateStatus,
     assignPriority,
     assignTeam,
     addInternalNote,
-    publishPublicUpdate,
   } =
     useAdminPortal();
   const [noteDraft, setNoteDraft] = useState('');
-  const [publicUpdateDraft, setPublicUpdateDraft] = useState('');
 
   const report = id ? reports.find((item) => item.id === id) : null;
 
@@ -71,7 +69,6 @@ export default function AdminReportDetailScreen() {
   }
 
   const assignmentOptions = ADMIN_TEAMS;
-  const canShowOfficialFixAction = Boolean(user);
 
   return (
     <AdminPortalShell
@@ -89,6 +86,16 @@ export default function AdminReportDetailScreen() {
       </TouchableOpacity>
 
       <View style={styles.summaryCard}>
+        {report.imageUri ? (
+          <View style={styles.heroImageWrap}>
+            <Image source={{ uri: report.imageUri }} style={styles.heroImage} resizeMode="contain" />
+          </View>
+        ) : (
+          <View style={styles.heroPlaceholder}>
+            <Ionicons name="image-outline" size={32} color={Colors.muted} />
+            <Text style={styles.heroPlaceholderText}>No photo provided</Text>
+          </View>
+        )}
         <View style={styles.summaryHeader}>
           <Text style={styles.summaryTitle}>{report.location.address}</Text>
           <View style={[styles.pill, { backgroundColor: `${getPriorityColor(report.priority)}16` }]}>
@@ -139,30 +146,6 @@ export default function AdminReportDetailScreen() {
           })}
         </View>
 
-        {canShowOfficialFixAction && report.status !== 'resolved' ? (
-          <TouchableOpacity
-            style={styles.fixButton}
-            activeOpacity={0.84}
-            onPress={() => updateStatus(report.id, 'resolved')}
-          >
-            <Ionicons name="checkmark-circle" size={18} color={Colors.black} />
-            <View style={styles.fixButtonTextWrap}>
-              <Text style={styles.fixButtonTitle}>Mark Fixed</Text>
-              <Text style={styles.fixButtonSubtitle}>
-                This updates the public report and turns the user dashboard status green.
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ) : null}
-
-        {canShowOfficialFixAction && report.status === 'resolved' ? (
-          <View style={styles.fixedBanner}>
-            <Ionicons name="checkmark-done-circle" size={18} color={Colors.green} />
-            <Text style={styles.fixedBannerText}>
-              This report is marked fixed and already shows green in the public app.
-            </Text>
-          </View>
-        ) : null}
       </View>
 
       <View style={styles.sectionCard}>
@@ -227,47 +210,6 @@ export default function AdminReportDetailScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
-      </View>
-
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Public Status Update</Text>
-        <Text style={styles.helperText}>
-          This message is visible to city officials in the portal and to residents in the reporting app.
-        </Text>
-
-        {report.publicUpdate ? (
-          <View style={styles.publicUpdateCard}>
-            <Text style={styles.publicUpdateMessage}>{report.publicUpdate.message}</Text>
-            <Text style={styles.publicUpdateMeta}>
-              {report.publicUpdate.authorName} · City Official · {formatTimestamp(report.publicUpdate.updatedAt)}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.emptyPublicUpdate}>
-            <Text style={styles.emptyPublicUpdateText}>No public repair update has been posted yet.</Text>
-          </View>
-        )}
-
-        <View style={styles.noteComposer}>
-          <TextInput
-            value={publicUpdateDraft}
-            onChangeText={setPublicUpdateDraft}
-            multiline
-            placeholder="Add a public-facing city update"
-            placeholderTextColor={Colors.muted}
-            style={styles.noteInput}
-          />
-          <TouchableOpacity
-            style={styles.noteButton}
-            activeOpacity={0.84}
-            onPress={() => {
-              publishPublicUpdate(report.id, publicUpdateDraft);
-              setPublicUpdateDraft('');
-            }}
-          >
-            <Text style={styles.noteButtonText}>Publish Public Update</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -359,6 +301,38 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
     gap: 10,
   },
+  heroImageWrap: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.black,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPlaceholder: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.dark3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  heroPlaceholderText: {
+    color: Colors.muted,
+    fontSize: 12,
+  },
   summaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -416,48 +390,6 @@ const styles = StyleSheet.create({
   optionChipText: {
     fontSize: 12,
     fontWeight: '700',
-  },
-  fixButton: {
-    marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 18,
-    backgroundColor: Colors.green,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  fixButtonTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  fixButtonTitle: {
-    color: Colors.black,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  fixButtonSubtitle: {
-    color: 'rgba(10,10,10,0.72)',
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '600',
-  },
-  fixedBanner: {
-    marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: 'rgba(52,199,89,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(52,199,89,0.24)',
-  },
-  fixedBannerText: {
-    flex: 1,
-    color: Colors.white,
-    fontSize: 12,
-    lineHeight: 18,
   },
   priorityRow: {
     flexDirection: 'row',

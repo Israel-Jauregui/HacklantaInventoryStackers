@@ -2,6 +2,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { MOCK_REPORTS, type Report } from '@/data/mockReports';
+import {
+  ensureUser,
+  createReport as apiCreateReport,
+  getUserReports,
+  updateReportStatus as apiUpdateReportStatus,
+  type ApiReport,
+  toImageUrl,
+} from '@/lib/api';
 
 const STORAGE_KEY = 'device_uuid';
 // Combined keys from both branches
@@ -11,6 +19,7 @@ const REPORTS_STORAGE_KEY = 'streetsense_reports';
 
 interface AppContextValue {
   deviceUuid: string | null;
+  userId: string | null;
   displayName: string;
   setDisplayName: (name: string) => void;
   avatarUri: string | null;
@@ -28,6 +37,7 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue>({
   deviceUuid: null,
+  userId: null,
   displayName: 'StreetSense User',
   setDisplayName: () => {},
   avatarUri: null,
@@ -46,11 +56,28 @@ export function useApp() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [displayName, setDisplayNameState] = useState('StreetSense User');
   const [avatarUri, setAvatarUriState] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
   const [hasLoadedReports, setHasLoadedReports] = useState(false);
+
+  const mapApiReportToReport = useCallback((apiReport: ApiReport): Report => {
+    return {
+      id: apiReport.id,
+      imageUri: toImageUrl(apiReport.image_path),
+      location: {
+        lat: apiReport.latitude,
+        lng: apiReport.longitude,
+        address: apiReport.address,
+      },
+      severityScore: apiReport.severity_score,
+      status: apiReport.status,
+      userId: apiReport.user_id,
+      publicUpdate: null,
+    };
+  }, []);
 
   // Initialize device UUID and seed mock data
   useEffect(() => {
@@ -83,6 +110,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
+  // Fetch / create backend user and sync reports from FastAPI
+  useEffect(() => {
+    if (!deviceUuid) return;
+
+    void (async () => {
+      try {
+        const backendUser = await ensureUser(deviceUuid, displayName);
+        setUserId(backendUser.id);
+
+        const backendReports = await getUserReports(backendUser.id);
+        setReports(backendReports.map(mapApiReportToReport));
+      } catch (error) {
+        console.warn('Failed to sync reports from API', error);
+      } finally {
+        setHasLoadedReports(true);
+      }
+    })();
+  }, [deviceUuid, displayName, mapApiReportToReport]);
+
   // Profile setters (from main)
   const setDisplayName = useCallback(async (name: string) => {
     setDisplayNameState(name);
@@ -102,16 +148,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [hasLoadedReports, reports]);
 
   const addReport = useCallback((report: Report) => {
+    // Optimistic add locally
     setReports((prev) => [report, ...prev]);
-  }, []);
+
+    if (!userId) return;
+
+    void (async () => {
+      try {
+        const created = await apiCreateReport({
+          userId,
+          latitude: report.location.lat,
+          longitude: report.location.lng,
+          address: report.location.address,
+          severityScore: report.severityScore,
+          status: report.status,
+          imageUri: report.imageUri || undefined,
+        });
+
+        const mapped = mapApiReportToReport(created);
+        setReports((prev) => [mapped, ...prev.filter((r) => r.id !== report.id)]);
+      } catch (error) {
+        console.warn('Failed to send report to API', error);
+      }
+    })();
+  }, [mapApiReportToReport, userId]);
 
   const updateReportStatus = useCallback(
     (id: string, status: 'open' | 'fixed') => {
       setReports((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status } : r))
       );
+
+      void (async () => {
+        try {
+          const updated = await apiUpdateReportStatus(id, status);
+          const mapped = mapApiReportToReport(updated);
+          setReports((prev) =>
+            prev.map((r) => (r.id === id ? mapped : r))
+          );
+        } catch (error) {
+          console.warn('Failed to update report status in API', error);
+        }
+      })();
     },
-    []
+    [mapApiReportToReport]
   );
 
   const updatePublicReport = useCallback(
@@ -135,6 +215,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Combined values exposed to the app context
       value={{
         deviceUuid,
+        userId,
         displayName,
         setDisplayName,
         avatarUri,

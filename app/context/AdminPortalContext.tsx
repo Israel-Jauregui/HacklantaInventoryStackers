@@ -11,6 +11,7 @@ import {
 } from '@/data/adminPortalMock';
 import { useApp } from '@/context/AppContext';
 import { getDistrict, getPriorityFromScore } from '@/utils/adminPortal';
+import { listReports, toImageUrl, type ApiReport } from '@/lib/api';
 
 interface AdminUser {
   name: string;
@@ -82,8 +83,61 @@ function syncPublicUpdateNote(
   ];
 }
 
+function mapApiReportToAdminReport(apiReport: ApiReport): AdminReport {
+  const priority = getPriorityFromScore(apiReport.severity_score);
+  const category = apiReport.severity_score >= 6 ? 'Pothole' : 'Road Surface';
+
+  return {
+    id: apiReport.id,
+    title: apiReport.severity_score >= 7.5 ? 'High-severity pothole cluster' : 'Road surface damage',
+    category,
+    description:
+      apiReport.description ??
+      'Citizen-submitted roadway issue requiring city review, crew assignment, and closeout verification.',
+    imageUri: toImageUrl(apiReport.image_path),
+    location: {
+      lat: apiReport.latitude,
+      lng: apiReport.longitude,
+      address: apiReport.address,
+    },
+    severityScore: apiReport.severity_score,
+    priority,
+    status: apiReport.status === 'fixed' ? 'resolved' : 'new',
+    district: getDistrict(apiReport.address),
+    assignedTeam: 'Surface Crew Alpha',
+    source: 'Resident App',
+    reportedBy: 'Resident Mobile Intake',
+    createdAt: apiReport.created_at,
+    updatedAt: apiReport.updated_at,
+    publicUpdate: null,
+    notes: [],
+  };
+}
+
+function mergeAdminReports(existing: AdminReport[], incoming: AdminReport[]) {
+  const merged = [...existing];
+
+  incoming.forEach((report) => {
+    const idx = merged.findIndex((r) => r.id === report.id);
+    if (idx === -1) {
+      merged.unshift(report);
+      return;
+    }
+
+    const preservedNotes = merged[idx].notes;
+    merged[idx] = {
+      ...merged[idx],
+      ...report,
+      notes: preservedNotes,
+    };
+  });
+
+  return merged;
+}
+
 export function AdminPortalProvider({ children }: { children: ReactNode }) {
-  const { reports: appReports, updatePublicReport } = useApp();
+  const { reports: appReports, updatePublicReport, updateReportStatus: updateResidentStatus } =
+    useApp();
   const [isReady, setIsReady] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
   const [reports, setReports] = useState<AdminReport[]>(ADMIN_PORTAL_REPORTS);
@@ -97,6 +151,19 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
         }
       } finally {
         setIsReady(true);
+      }
+    })();
+  }, []);
+
+  // Load all reports for officials from FastAPI
+  useEffect(() => {
+    void (async () => {
+      try {
+        const apiReports = await listReports();
+        const mapped = apiReports.map(mapApiReportToAdminReport);
+        setReports((currentReports) => mergeAdminReports(currentReports, mapped));
+      } catch (error) {
+        console.warn('Failed to load reports from API', error);
       }
     })();
   }, []);
@@ -190,7 +257,7 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
   };
 
   const updateStatus = (id: string, status: AdminWorkflowStatus) => {
-    updatePublicReport(id, { status: status === 'resolved' ? 'fixed' : 'open' });
+    updateResidentStatus(id, status === 'resolved' ? 'fixed' : 'open');
     setReports((currentReports) =>
       currentReports.map((report) =>
         report.id === id
