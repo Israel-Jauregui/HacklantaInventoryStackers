@@ -82,19 +82,19 @@ Migration files are stored in `alembic/versions/`. Each file contains:
 
 ```bash
 # Start PostgreSQL container
-docker-compose up -d
+docker compose up -d
 
 # Check container status
-docker-compose ps
+docker compose ps
 
 # View database logs
-docker-compose logs -f db
+docker compose logs -f db
 
 # Stop containers
-docker-compose down
+docker compose down
 
 # Stop and remove all data (destructive)
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Environment Variables
