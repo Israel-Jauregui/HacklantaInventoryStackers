@@ -3,6 +3,7 @@
  */
 
 import { fetchApi, fetchApiMultipart, API_BASE_URL, ApiError } from './api';
+import { compressImageForUpload } from './imageUtils';
 import type {
   ApiReport,
   ApiReportWithUser,
@@ -58,18 +59,40 @@ export async function getUserReports(userId: string): Promise<ApiReport[]> {
 }
 
 /**
+ * Build query params for the /reports POST endpoint.
+ * The backend declares all non-file params as query params.
+ */
+function buildReportQueryParams(
+  userId: string,
+  reportData: ApiReportCreate
+): string {
+  const params = new URLSearchParams({
+    user_id: userId,
+    latitude: reportData.latitude.toString(),
+    longitude: reportData.longitude.toString(),
+    address: reportData.address,
+    severity_score: reportData.severity_score.toString(),
+    status: reportData.status || 'open',
+  });
+  if (reportData.description) {
+    params.append('description', reportData.description);
+  }
+  return params.toString();
+}
+
+/**
  * Create a new report without image
  */
 export async function createReportWithoutImage(
   userId: string,
   reportData: ApiReportCreate
 ): Promise<ApiReport> {
-  const params = new URLSearchParams({ user_id: userId });
+  const query = buildReportQueryParams(userId, reportData);
   
-  return fetchApi<ApiReport>(`/reports?${params.toString()}`, {
-    method: 'POST',
-    body: JSON.stringify(reportData),
-  });
+  // Send an empty multipart form (backend still expects multipart due to File() param)
+  const formData = new FormData();
+  
+  return fetchApiMultipart<ApiReport>(`/reports?${query}`, formData);
 }
 
 /**
@@ -80,31 +103,20 @@ export async function createReportWithImage(
   reportData: ApiReportCreate,
   imageUri: string
 ): Promise<ApiReport> {
+  // Compress image before uploading to avoid 413 from server
+  const compressedUri = await compressImageForUpload(imageUri);
+  
+  const query = buildReportQueryParams(userId, reportData);
+  
+  // Only the image goes in the form body
   const formData = new FormData();
-  
-  // Add report data as JSON
-  formData.append('latitude', reportData.latitude.toString());
-  formData.append('longitude', reportData.longitude.toString());
-  formData.append('address', reportData.address);
-  formData.append('severity_score', reportData.severity_score.toString());
-  formData.append('status', reportData.status || 'open');
-  if (reportData.description) {
-    formData.append('description', reportData.description);
-  }
-  
-  // Add image file
-  const uriParts = imageUri.split('.');
-  const fileType = uriParts[uriParts.length - 1];
-  
   formData.append('image', {
-    uri: imageUri,
-    name: `report.${fileType}`,
-    type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+    uri: compressedUri,
+    name: 'report.jpg',
+    type: 'image/jpeg',
   } as unknown as Blob);
   
-  const params = new URLSearchParams({ user_id: userId });
-  
-  return fetchApiMultipart<ApiReport>(`/reports?${params.toString()}`, formData);
+  return fetchApiMultipart<ApiReport>(`/reports?${query}`, formData);
 }
 
 /**
@@ -143,16 +155,13 @@ export async function analyzeImage(
   imageUri: string,
   prompt: string = 'Analyze this road damage image and provide a severity assessment.'
 ): Promise<ImageAnalysisResponse> {
+  const compressedUri = await compressImageForUpload(imageUri);
   const formData = new FormData();
   
-  // Add image file
-  const uriParts = imageUri.split('.');
-  const fileType = uriParts[uriParts.length - 1];
-  
-  formData.append('file', {
-    uri: imageUri,
-    name: `analyze.${fileType}`,
-    type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+  formData.append('image', {
+    uri: compressedUri,
+    name: 'analyze.jpg',
+    type: 'image/jpeg',
   } as unknown as Blob);
   
   formData.append('prompt', prompt);
@@ -168,22 +177,67 @@ export async function analyzeImageWithContext(
   prompt: string,
   context: string
 ): Promise<ImageAnalysisResponse> {
+  const compressedUri = await compressImageForUpload(imageUri);
   const formData = new FormData();
   
-  // Add image file
-  const uriParts = imageUri.split('.');
-  const fileType = uriParts[uriParts.length - 1];
-  
-  formData.append('file', {
-    uri: imageUri,
-    name: `analyze.${fileType}`,
-    type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+  formData.append('image', {
+    uri: compressedUri,
+    name: 'analyze.jpg',
+    type: 'image/jpeg',
   } as unknown as Blob);
   
   formData.append('prompt', prompt);
   formData.append('context', context);
   
   return fetchApiMultipart<ImageAnalysisResponse>('/analyze-image-with-context', formData);
+}
+
+/**
+ * Parsed result from AI pothole analysis
+ */
+export interface PotholeAnalysisResult {
+  score: number;           // 0-10 severity score
+  description: string;     // AI description of the pothole
+  rawResponse: string;     // Full AI response text
+}
+
+/**
+ * Analyze a pothole image and extract a severity score.
+ * Sends a structured prompt so Gemini returns a parseable severity score.
+ */
+export async function analyzePotholeImage(imageUri: string): Promise<PotholeAnalysisResult> {
+  const prompt = [
+    'You are an AI road damage assessment tool.',
+    'Analyze this image of a pothole or road damage.',
+    'Respond with EXACTLY this format on the first line:',
+    'SEVERITY: <number from 0.0 to 10.0>',
+    'Then on subsequent lines, provide a brief description of the damage,',
+    'including estimated dimensions and potential vehicle damage risk.',
+    'If the image does not show road damage, respond with SEVERITY: 0.0 and explain why.',
+  ].join(' ');
+
+  const result = await analyzeImage(imageUri, prompt);
+
+  // Parse severity score from response
+  const severityMatch = result.response.match(/SEVERITY:\s*([\d.]+)/i);
+  let score = severityMatch ? parseFloat(severityMatch[1]) : 5.0;
+
+  // Clamp to 0-10 range
+  score = Math.max(0, Math.min(10, score));
+
+  // Round to 1 decimal
+  score = Math.round(score * 10) / 10;
+
+  // Extract description (everything after the SEVERITY line)
+  const lines = result.response.split('\n');
+  const descriptionLines = lines.slice(1).filter((l: string) => l.trim().length > 0);
+  const description = descriptionLines.join(' ').trim() || 'Road damage detected.';
+
+  return {
+    score,
+    description,
+    rawResponse: result.response,
+  };
 }
 
 /**

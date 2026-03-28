@@ -9,11 +9,13 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
+import { analyzePotholeImage, type PotholeAnalysisResult } from '@/services/reportService';
 
 export default function ReportDetailsScreen() {
   const { imageUri, address, area, lat, lng } = useLocalSearchParams<{
@@ -30,17 +32,46 @@ export default function ReportDetailsScreen() {
   const [notes, setNotes] = useState('');
   const [notify, setNotify] = useState(true);
   const [selectedSeverity, setSelectedSeverity] = useState<'Critical' | 'Moderate' | 'Minor' | null>(null);
+  const [aiDescription, setAiDescription] = useState('');
 
-  // AI mock analysis
+  // AI analysis via backend
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const mockScore = 7.8;
-      setScore(mockScore);
-      setSelectedSeverity(severityLabel(mockScore) as any);
-      setAnalyzing(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    let cancelled = false;
+
+    async function runAnalysis() {
+      if (!imageUri) {
+        // No image — fall back to manual entry
+        setAnalyzing(false);
+        return;
+      }
+
+      try {
+        const result: PotholeAnalysisResult = await analyzePotholeImage(imageUri);
+        if (cancelled) return;
+        setScore(result.score);
+        setSelectedSeverity(severityLabel(result.score) as any);
+        setAiDescription(result.description);
+        setAnalyzing(false);
+      } catch (err: any) {
+        if (cancelled) return;
+        console.warn('AI analysis failed, using fallback:', err?.message);
+        // Fallback: let user set severity manually
+        const fallbackScore = 5.0;
+        setScore(fallbackScore);
+        setSelectedSeverity(severityLabel(fallbackScore) as any);
+        setAiDescription('');
+        setAnalyzing(false);
+        Alert.alert(
+          'Analysis Unavailable',
+          'AI analysis could not be completed. You can adjust the severity manually.',
+          [{ text: 'OK' }]
+        );
+      }
+    }
+
+    runAnalysis();
+    return () => { cancelled = true; };
+  }, [imageUri]);
 
   const handleReview = () => {
     router.push({
@@ -117,8 +148,15 @@ export default function ReportDetailsScreen() {
                 const active = selectedSeverity === c;
                 const chipColor = c === 'Critical' ? Colors.red : c === 'Moderate' ? Colors.amber : Colors.green;
                 return (
-                  <View
+                  <TouchableOpacity
                     key={c}
+                    onPress={() => {
+                      setSelectedSeverity(c);
+                      // Update score to match chip
+                      const chipScore = c === 'Critical' ? 8.0 : c === 'Moderate' ? 5.0 : 2.5;
+                      setScore(chipScore);
+                    }}
+                    activeOpacity={0.7}
                     style={[
                       styles.chip,
                       active && { backgroundColor: chipColor + '20', borderColor: chipColor },
@@ -126,7 +164,7 @@ export default function ReportDetailsScreen() {
                   >
                     {active && <Ionicons name="checkmark" size={14} color={chipColor} />}
                     <Text style={[styles.chipText, active && { color: chipColor }]}>{c}</Text>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -136,7 +174,9 @@ export default function ReportDetailsScreen() {
           <View style={styles.aiBanner}>
             <Ionicons name="sparkles" size={16} color={Colors.yellow} />
             <Text style={styles.aiBannerText}>
-              AI detected large pothole (~18 in wide, ~4 in deep). Severity set to{' '}
+              {aiDescription
+                ? `${aiDescription} Severity set to `
+                : `AI analysis complete. Severity set to `}
               <Text style={{ fontWeight: '700' }}>{selectedSeverity}</Text>.
             </Text>
           </View>
