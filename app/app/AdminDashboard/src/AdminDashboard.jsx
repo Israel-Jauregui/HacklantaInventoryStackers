@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './AdminDashboard.css';
+import LiveMapPage from './LiveMapPage';
 
 /* ════════════════════════════════════════════
    DATA
@@ -878,7 +879,7 @@ export default function AdminDashboard() {
     toastTimer.current = setTimeout(() => setToastVisible(false), 3500);
   }, []);
 
-  const knownPages = ['dashboard', 'heatmap'];
+  const knownPages = ['dashboard', 'heatmap', 'map'];
 
   return (
     <div className="app-shell">
@@ -887,6 +888,7 @@ export default function AdminDashboard() {
       <div className="main">
         {activePage==='dashboard' && <DashboardPage onOpenModal={openModal} onToast={showToast}/>}
         {activePage==='heatmap'   && <HeatmapPage   onOpenModal={openModal} onToast={showToast}/>}
+        {activePage==='map'       && <LiveMapPage    onOpenModal={openModal} onToast={showToast}/>}
         {!knownPages.includes(activePage) && (
           <>
             <header className="header">
