@@ -205,7 +205,7 @@ export default function ReportDetailsScreen() {
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutBubble}>
                   <Text style={styles.calloutName}>Tires</Text>
-                  <Text style={styles.calloutCost}>$150 – $300</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$150 – $300'}</Text>
                 </View>
               </View>
 
@@ -214,7 +214,7 @@ export default function ReportDetailsScreen() {
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutBubble}>
                   <Text style={styles.calloutName}>Suspension</Text>
-                  <Text style={styles.calloutCost}>$500 – $1,500</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$500 – $1,500'}</Text>
                 </View>
               </View>
 
@@ -222,7 +222,7 @@ export default function ReportDetailsScreen() {
               <View style={[styles.callout, styles.calloutRim]}>
                 <View style={styles.calloutBubbleR}>
                   <Text style={styles.calloutName}>Rims / Wheels</Text>
-                  <Text style={styles.calloutCost}>$200 – $500</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$200 – $500'}</Text>
                 </View>
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutDot} />
@@ -231,23 +231,31 @@ export default function ReportDetailsScreen() {
               <View style={[styles.callout, styles.calloutAlign]}>
                 <View style={styles.calloutBubbleR}>
                   <Text style={styles.calloutName}>Alignment</Text>
-                  <Text style={styles.calloutCost}>$100 – $200</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$100 – $200'}</Text>
                 </View>
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutDot} />
               </View>
             </View>
 
+            {/* Dimensions from AI */}
+            {aiDimensions !== 'Unknown' && (
+              <View style={styles.underRow}>
+                <Ionicons name="resize" size={14} color={Colors.yellow} />
+                <Text style={styles.underText}>Estimated size: <Text style={{ fontWeight: '700', color: Colors.yellow }}>{aiDimensions}</Text></Text>
+              </View>
+            )}
+
             {/* Undercarriage row */}
             <View style={styles.underRow}>
               <Ionicons name="warning" size={14} color={Colors.amber} />
-              <Text style={styles.underText}>Undercarriage risk: <Text style={{ fontWeight: '700', color: Colors.amber }}>$300 – $800</Text></Text>
+              <Text style={styles.underText}>Overall damage estimate: <Text style={{ fontWeight: '700', color: Colors.amber }}>{aiDamage || '$300 – $800'}</Text></Text>
             </View>
 
             {/* Total */}
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>ESTIMATED TOTAL DAMAGE</Text>
-              <Text style={styles.totalValue}>$1,250 – $3,300</Text>
+              <Text style={styles.totalLabel}>AI DAMAGE ESTIMATE</Text>
+              <Text style={styles.totalValue}>{aiDamage || '$1,250 – $3,300'}</Text>
             </View>
           </View>
 

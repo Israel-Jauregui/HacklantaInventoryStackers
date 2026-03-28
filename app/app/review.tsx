@@ -29,7 +29,7 @@ export default function ReviewScreen() {
   const router = useRouter();
   const { addReport, deviceUuid, serverUserId, refreshReports } = useApp();
 
-  const numScore = parseFloat(score) || 7.8;
+  const numScore = score != null && score !== '' ? parseFloat(score) : 7.8;
   const sColor = severityColor(numScore);
   const [submitting, setSubmitting] = useState(false);
 

@@ -161,8 +161,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setAvatarUriState(uri);
       if (uri) await AsyncStorage.setItem(AVATAR_KEY, uri);
       else await AsyncStorage.removeItem(AVATAR_KEY);
+      // Sync emoji avatar ID to backend as profile_picture
+      if (serverUserId) {
+        apiUpdateUser(serverUserId, { profile_picture: uri }).catch(() => {});
+      }
     },
-    [],
+    [serverUserId],
   );
 
   /* ─── Add report (optimistic + server sync) ─── */

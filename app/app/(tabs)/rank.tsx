@@ -13,21 +13,28 @@ interface Scout {
   score: number;
   rank: number;
   isCurrentUser: boolean;
+  avatar: string | null;
 }
 
 /* ─── Fallback mock data (used while server is unreachable) ─── */
 const MOCK_LEADERBOARD: Scout[] = [
-  { id: '1', alias: 'AsphaltAvenger',  score: 1340, rank: 1,  isCurrentUser: false },
-  { id: '2', alias: 'PotholePatrol',   score: 1185, rank: 2,  isCurrentUser: false },
-  { id: '3', alias: 'RoadWarrior',     score: 1020, rank: 3,  isCurrentUser: false },
-  { id: '4', alias: 'CraterCrusher',   score: 870,  rank: 4,  isCurrentUser: false },
-  { id: '5', alias: 'StreetSentinel',  score: 745,  rank: 5,  isCurrentUser: true },
-  { id: '6', alias: 'PavePioneer',     score: 680,  rank: 6,  isCurrentUser: false },
-  { id: '7', alias: 'CivicSniper',     score: 590,  rank: 7,  isCurrentUser: false },
-  { id: '8', alias: 'TarTitan',        score: 430,  rank: 8,  isCurrentUser: false },
-  { id: '9', alias: 'GridGuru',        score: 310,  rank: 9,  isCurrentUser: false },
-  { id: '10', alias: 'BumpBuster',     score: 220, rank: 10, isCurrentUser: false },
+  { id: '1', alias: 'AsphaltAvenger',  score: 1340, rank: 1,  isCurrentUser: false, avatar: null },
+  { id: '2', alias: 'PotholePatrol',   score: 1185, rank: 2,  isCurrentUser: false, avatar: null },
+  { id: '3', alias: 'RoadWarrior',     score: 1020, rank: 3,  isCurrentUser: false, avatar: null },
+  { id: '4', alias: 'CraterCrusher',   score: 870,  rank: 4,  isCurrentUser: false, avatar: null },
+  { id: '5', alias: 'StreetSentinel',  score: 745,  rank: 5,  isCurrentUser: true,  avatar: null },
+  { id: '6', alias: 'PavePioneer',     score: 680,  rank: 6,  isCurrentUser: false, avatar: null },
+  { id: '7', alias: 'CivicSniper',     score: 590,  rank: 7,  isCurrentUser: false, avatar: null },
+  { id: '8', alias: 'TarTitan',        score: 430,  rank: 8,  isCurrentUser: false, avatar: null },
+  { id: '9', alias: 'GridGuru',        score: 310,  rank: 9,  isCurrentUser: false, avatar: null },
+  { id: '10', alias: 'BumpBuster',     score: 220, rank: 10, isCurrentUser: false, avatar: null },
 ];
+
+/* emoji lookup for avatar presets */
+const AVATAR_EMOJIS: Record<string, string> = {
+  '1': '🦸', '2': '🛣️', '3': '🔧', '4': '🏗️', '5': '🦺', '6': '🚧',
+  '7': '🎯', '8': '⚡', '9': '🌟', '10': '🏆', '11': '🦅', '12': '🔥',
+};
 
 /* ─── Helpers ─── */
 function rankBadge(rank: number) {
@@ -55,7 +62,11 @@ function PodiumCard({ user, isFirst }: { user: Scout; isFirst: boolean }) {
           isFirst && styles.podiumAvatarFirst,
         ]}
       >
-        <Ionicons name="person" size={isFirst ? 26 : 20} color={isFirst ? Colors.black : Colors.muted} />
+        {user.avatar && AVATAR_EMOJIS[user.avatar] ? (
+          <Text style={{ fontSize: isFirst ? 28 : 22 }}>{AVATAR_EMOJIS[user.avatar]}</Text>
+        ) : (
+          <Ionicons name="person" size={isFirst ? 26 : 20} color={isFirst ? Colors.black : Colors.muted} />
+        )}
       </View>
       <Text style={styles.podiumMedal}>{rankBadge(user.rank)}</Text>
       <Text style={[styles.podiumAlias, isFirst && styles.podiumAliasFirst]} numberOfLines={1}>
@@ -74,6 +85,9 @@ function ScoutRow({ user }: { user: Scout }) {
   return (
     <View style={[styles.row, isMe && styles.rowMe]}>
       <Text style={[styles.rowRank, isMe && styles.rowRankMe]}>#{user.rank}</Text>
+      {user.avatar && AVATAR_EMOJIS[user.avatar] ? (
+        <Text style={{ fontSize: 20, marginRight: 8 }}>{AVATAR_EMOJIS[user.avatar]}</Text>
+      ) : null}
       <View style={styles.rowMiddle}>
         <Text style={[styles.rowAlias, isMe && styles.rowAliasMe]} numberOfLines={1}>
           {user.alias}
@@ -104,6 +118,7 @@ export default function LeaderboardScreen() {
               score: e.score,
               rank: i + 1,
               isCurrentUser: e.user_id === serverUserId,
+              avatar: e.profile_picture,
             })),
           );
         }
@@ -115,9 +130,9 @@ export default function LeaderboardScreen() {
     })();
   }, [serverUserId]);
 
-  const currentUser = leaderboard.find((u) => u.isCurrentUser) ?? leaderboard[leaderboard.length - 1];
+  const currentUser = leaderboard.find((u) => u.isCurrentUser) ?? null;
   const podium = leaderboard.slice(0, 3);
-  const rest = leaderboard.slice(3);
+  const rest = leaderboard.slice(podium.length >= 3 ? 3 : 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -133,11 +148,20 @@ export default function LeaderboardScreen() {
       </View>
 
       {/* Podium */}
-      <View style={styles.podiumRow}>
-        <PodiumCard user={podium[1]} isFirst={false} />
-        <PodiumCard user={podium[0]} isFirst />
-        <PodiumCard user={podium[2]} isFirst={false} />
-      </View>
+      {podium.length >= 3 && (
+        <View style={styles.podiumRow}>
+          <PodiumCard user={podium[1]} isFirst={false} />
+          <PodiumCard user={podium[0]} isFirst />
+          <PodiumCard user={podium[2]} isFirst={false} />
+        </View>
+      )}
+      {podium.length > 0 && podium.length < 3 && (
+        <View style={styles.podiumRow}>
+          {podium.map((u, i) => (
+            <PodiumCard key={u.id} user={u} isFirst={i === 0} />
+          ))}
+        </View>
+      )}
 
       {/* Scoring note */}
       <View style={styles.scoringNote}>
@@ -155,14 +179,25 @@ export default function LeaderboardScreen() {
       />
 
       {/* Sticky current-user bar */}
-      <View style={styles.stickyBar}>
-        <Text style={styles.stickyRank}>#{currentUser.rank}</Text>
-        <View style={styles.stickyMiddle}>
-          <Text style={styles.stickyAlias}>{currentUser.alias}</Text>
-          <Text style={styles.stickyYou}>You</Text>
+      {currentUser ? (
+        <View style={styles.stickyBar}>
+          <Text style={styles.stickyRank}>#{currentUser.rank}</Text>
+          <View style={styles.stickyMiddle}>
+            <Text style={styles.stickyAlias}>{currentUser.alias}</Text>
+            <Text style={styles.stickyYou}>You</Text>
+          </View>
+          <Text style={styles.stickyScore}>{currentUser.score.toLocaleString()} pts</Text>
         </View>
-        <Text style={styles.stickyScore}>{currentUser.score.toLocaleString()} pts</Text>
-      </View>
+      ) : (
+        <View style={styles.stickyBar}>
+          <Text style={styles.stickyRank}>—</Text>
+          <View style={styles.stickyMiddle}>
+            <Text style={styles.stickyAlias}>You</Text>
+            <Text style={styles.stickyYou}>Submit a report to join!</Text>
+          </View>
+          <Text style={styles.stickyScore}>0 pts</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
