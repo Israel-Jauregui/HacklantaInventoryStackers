@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -20,7 +21,8 @@ from sqlmodel import select
 from database import init_db, get_session
 from models import (
     User, UserCreate, UserRead,
-    Report, ReportCreate, ReportRead, ReportReadWithUser
+    Report, ReportCreate, ReportRead, ReportReadWithUser,
+    ReportStatus
 )
 
 # Load environment variables
@@ -41,8 +43,9 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events."""
-    # Startup: Initialize database
+    # Startup: Initialize database and ensure uploads directory exists
     await init_db()
+    UPLOAD_DIR.mkdir(exist_ok=True)
     yield
     # Shutdown: cleanup if needed
 
@@ -62,6 +65,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount uploads directory for serving static image files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 # Response model for image analysis
@@ -94,6 +100,8 @@ async def create_user(
     Register a new user with their device ID.
     
     - **device_id**: Unique identifier from the app installation
+    - **username**: Optional display name for the user
+    - **profile_picture**: Optional URL path to profile picture
     
     Returns the created user with their assigned UUID.
     """
@@ -160,6 +168,87 @@ async def list_users(
     return users
 
 
+@app.patch("/users/{user_id}", response_model=UserRead)
+async def update_user(
+    user_id: uuid.UUID,
+    username: Optional[str] = None,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Update a user's profile information.
+    
+    - **user_id**: UUID of the user to update
+    - **username**: New display name for the user
+    
+    Returns the updated user.
+    """
+    statement = select(User).where(User.id == user_id)
+    result = await session.execute(statement)
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if username is not None:
+        user.username = username
+    
+    user.updated_at = datetime.utcnow()
+    
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+@app.post("/users/{user_id}/profile-picture", response_model=UserRead)
+async def upload_profile_picture(
+    user_id: uuid.UUID,
+    image: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Upload a profile picture for a user.
+    
+    - **user_id**: UUID of the user
+    - **image**: Image file (JPEG, PNG, GIF, WebP)
+    
+    Returns the updated user with profile_picture URL.
+    """
+    # Verify user exists
+    statement = select(User).where(User.id == user_id)
+    result = await session.execute(statement)
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if image.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
+        )
+    
+    # Generate unique filename with user_id prefix for organization
+    file_ext = image.filename.split(".")[-1] if image.filename else "jpg"
+    filename = f"profile_{user_id}_{uuid.uuid4()}.{file_ext}"
+    file_path = UPLOAD_DIR / filename
+    
+    # Save the file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+    
+    # Update user's profile picture path
+    user.profile_picture = f"/uploads/{filename}"
+    user.updated_at = datetime.utcnow()
+    
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
 # ==================== Report Endpoints ====================
 
 @app.post("/reports", response_model=ReportRead, status_code=201)
@@ -167,6 +256,9 @@ async def create_report(
     user_id: uuid.UUID,
     latitude: float,
     longitude: float,
+    address: str,
+    severity_score: float = Query(..., ge=0, le=10),
+    status: ReportStatus = ReportStatus.open,
     description: Optional[str] = None,
     image: UploadFile = File(None),
     session: AsyncSession = Depends(get_session)
@@ -177,7 +269,10 @@ async def create_report(
     - **user_id**: UUID of the user creating the report
     - **latitude**: Latitude coordinate
     - **longitude**: Longitude coordinate
-    - **description**: Optional description
+    - **address**: Human-readable address of the location
+    - **severity_score**: AI-determined severity score (0-10)
+    - **status**: Report status (open or fixed, defaults to open)
+    - **description**: Optional notes about the report
     - **image**: Optional image file (JPEG, PNG, GIF, WebP)
     
     Returns the created report.
@@ -209,13 +304,17 @@ async def create_report(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
         
-        image_path = str(file_path)
+        # Store URL path for client access (e.g., /uploads/abc123.jpg)
+        image_path = f"/uploads/{filename}"
     
     # Create report
     report = Report(
         user_id=user_id,
         latitude=latitude,
         longitude=longitude,
+        address=address,
+        severity_score=severity_score,
+        status=status,
         description=description,
         image_path=image_path
     )
@@ -244,18 +343,56 @@ async def get_report(
     return report
 
 
+@app.patch("/reports/{report_id}/status", response_model=ReportRead)
+async def update_report_status(
+    report_id: uuid.UUID,
+    status: ReportStatus,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Update the status of a report.
+    
+    - **report_id**: UUID of the report to update
+    - **status**: New status (open or fixed)
+    
+    Returns the updated report.
+    """
+    statement = select(Report).where(Report.id == report_id)
+    result = await session.execute(statement)
+    report = result.scalar_one_or_none()
+    
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    report.status = status
+    report.updated_at = datetime.utcnow()
+    
+    session.add(report)
+    await session.commit()
+    await session.refresh(report)
+    return report
+
+
 @app.get("/reports", response_model=List[ReportRead])
 async def list_reports(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     user_id: Optional[uuid.UUID] = None,
+    status: Optional[ReportStatus] = None,
+    min_severity: Optional[float] = Query(None, ge=0, le=10),
     session: AsyncSession = Depends(get_session)
 ):
-    """List reports with optional filtering by user."""
+    """List reports with optional filtering by user, status, and severity."""
     statement = select(Report)
     
     if user_id:
         statement = statement.where(Report.user_id == user_id)
+    
+    if status:
+        statement = statement.where(Report.status == status)
+    
+    if min_severity is not None:
+        statement = statement.where(Report.severity_score >= min_severity)
     
     statement = statement.offset(skip).limit(limit)
     # Order by created_at descending (most recent first)
