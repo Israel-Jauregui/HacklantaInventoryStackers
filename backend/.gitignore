@@ -57,3 +57,6 @@ lgtm.yml
 .vscode/ # For VS Code
 *.swp
 
+# Uploads directory (user uploaded images)
+uploads/
+
