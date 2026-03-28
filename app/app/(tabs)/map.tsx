@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
-import type { Report } from '@/data/mockReports';
+import type { Report } from '@/context/AppContext';
 import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';

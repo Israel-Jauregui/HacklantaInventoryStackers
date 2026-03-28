@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
+import { analyzePothole } from '@/services/api';
 
 export default function ReportDetailsScreen() {
   const { imageUri, address, area } = useLocalSearchParams<{
@@ -28,17 +29,41 @@ export default function ReportDetailsScreen() {
   const [notes, setNotes] = useState('');
   const [notify, setNotify] = useState(true);
   const [selectedSeverity, setSelectedSeverity] = useState<'Critical' | 'Moderate' | 'Minor' | null>(null);
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiDimensions, setAiDimensions] = useState('');
+  const [aiDamage, setAiDamage] = useState('');
 
-  // AI mock analysis
+  // Real AI analysis via Gemini
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const mockScore = 7.8;
-      setScore(mockScore);
-      setSelectedSeverity(severityLabel(mockScore) as any);
-      setAnalyzing(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    (async () => {
+      try {
+        if (imageUri) {
+          const result = await analyzePothole(imageUri);
+          setScore(result.severity_score);
+          setSelectedSeverity(result.severity_label as any);
+          setAiDescription(result.description);
+          setAiDimensions(result.dimensions);
+          setAiDamage(result.damage_estimate);
+        } else {
+          // No image — use a default
+          setScore(5.0);
+          setSelectedSeverity('Moderate');
+          setAiDescription('No image provided for analysis.');
+          setAiDimensions('Unknown');
+          setAiDamage('$100 – $500');
+        }
+      } catch (err) {
+        console.warn('Pothole analysis failed, using defaults', err);
+        setScore(5.0);
+        setSelectedSeverity('Moderate');
+        setAiDescription('AI analysis unavailable. Please set severity manually.');
+        setAiDimensions('Unknown');
+        setAiDamage('$100 – $500');
+      } finally {
+        setAnalyzing(false);
+      }
+    })();
+  }, [imageUri]);
 
   const handleReview = () => {
     router.push({
@@ -132,7 +157,7 @@ export default function ReportDetailsScreen() {
           <View style={styles.aiBanner}>
             <Ionicons name="sparkles" size={16} color={Colors.yellow} />
             <Text style={styles.aiBannerText}>
-              AI detected large pothole (~18 in wide, ~4 in deep). Severity set to{' '}
+              {aiDescription || 'AI analysis complete.'} Severity set to{' '}
               <Text style={{ fontWeight: '700' }}>{selectedSeverity}</Text>.
             </Text>
           </View>
@@ -180,7 +205,7 @@ export default function ReportDetailsScreen() {
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutBubble}>
                   <Text style={styles.calloutName}>Tires</Text>
-                  <Text style={styles.calloutCost}>$150 – $300</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$150 – $300'}</Text>
                 </View>
               </View>
 
@@ -189,7 +214,7 @@ export default function ReportDetailsScreen() {
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutBubble}>
                   <Text style={styles.calloutName}>Suspension</Text>
-                  <Text style={styles.calloutCost}>$500 – $1,500</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$500 – $1,500'}</Text>
                 </View>
               </View>
 
@@ -197,7 +222,7 @@ export default function ReportDetailsScreen() {
               <View style={[styles.callout, styles.calloutRim]}>
                 <View style={styles.calloutBubbleR}>
                   <Text style={styles.calloutName}>Rims / Wheels</Text>
-                  <Text style={styles.calloutCost}>$200 – $500</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$200 – $500'}</Text>
                 </View>
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutDot} />
@@ -206,23 +231,31 @@ export default function ReportDetailsScreen() {
               <View style={[styles.callout, styles.calloutAlign]}>
                 <View style={styles.calloutBubbleR}>
                   <Text style={styles.calloutName}>Alignment</Text>
-                  <Text style={styles.calloutCost}>$100 – $200</Text>
+                  <Text style={styles.calloutCost}>{aiDamage || '$100 – $200'}</Text>
                 </View>
                 <View style={styles.calloutLine} />
                 <View style={styles.calloutDot} />
               </View>
             </View>
 
+            {/* Dimensions from AI */}
+            {aiDimensions !== 'Unknown' && (
+              <View style={styles.underRow}>
+                <Ionicons name="resize" size={14} color={Colors.yellow} />
+                <Text style={styles.underText}>Estimated size: <Text style={{ fontWeight: '700', color: Colors.yellow }}>{aiDimensions}</Text></Text>
+              </View>
+            )}
+
             {/* Undercarriage row */}
             <View style={styles.underRow}>
               <Ionicons name="warning" size={14} color={Colors.amber} />
-              <Text style={styles.underText}>Undercarriage risk: <Text style={{ fontWeight: '700', color: Colors.amber }}>$300 – $800</Text></Text>
+              <Text style={styles.underText}>Overall damage estimate: <Text style={{ fontWeight: '700', color: Colors.amber }}>{aiDamage || '$300 – $800'}</Text></Text>
             </View>
 
             {/* Total */}
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>ESTIMATED TOTAL DAMAGE</Text>
-              <Text style={styles.totalValue}>$1,250 – $3,300</Text>
+              <Text style={styles.totalLabel}>AI DAMAGE ESTIMATE</Text>
+              <Text style={styles.totalValue}>{aiDamage || '$1,250 – $3,300'}</Text>
             </View>
           </View>
 
