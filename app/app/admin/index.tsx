@@ -14,13 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useAdminPortal } from '@/context/AdminPortalContext';
-import { ADMIN_DEMO_CREDENTIALS } from '@/data/adminPortalMock';
 
 export default function AdminLoginScreen() {
   const router = useRouter();
   const { isReady, isAuthenticated, login } = useAdminPortal();
-  const [email, setEmail] = useState(ADMIN_DEMO_CREDENTIALS.official.email);
-  const [password, setPassword] = useState(ADMIN_DEMO_CREDENTIALS.official.password);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   if (!isReady) {
@@ -38,17 +38,18 @@ export default function AdminLoginScreen() {
     return <Redirect href="/admin/dashboard" />;
   }
 
-  const activeCredentials = ADMIN_DEMO_CREDENTIALS.official;
+  const handleLogin = async () => {
+    setIsSubmitting(true);
+    const result = await login(email, password);
+    setIsSubmitting(false);
 
-  const handleLogin = () => {
-    const success = login(email, password);
-    if (success) {
+    if (result.success) {
       setError('');
       router.replace('/admin/dashboard');
       return;
     }
 
-    setError('Invalid credentials. Use the demo city official login below.');
+    setError(result.message ?? 'Invalid credentials. Access is limited to whitelisted city officials.');
   };
 
   return (
@@ -83,7 +84,7 @@ export default function AdminLoginScreen() {
               style={styles.input}
               autoCapitalize="none"
               keyboardType="email-address"
-              placeholder={activeCredentials.email}
+              placeholder="official@city.gov"
               placeholderTextColor={Colors.muted}
             />
           </View>
@@ -95,15 +96,24 @@ export default function AdminLoginScreen() {
               onChangeText={setPassword}
               style={styles.input}
               secureTextEntry
-              placeholder={activeCredentials.password}
+              placeholder="Enter your password"
               placeholderTextColor={Colors.muted}
             />
           </View>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.84} onPress={handleLogin}>
-            <Text style={styles.primaryButtonText}>Enter Admin Portal</Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, isSubmitting && styles.primaryButtonDisabled]}
+            activeOpacity={0.84}
+            onPress={() => {
+              void handleLogin();
+            }}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.primaryButtonText}>
+              {isSubmitting ? 'Checking access...' : 'Enter Admin Portal'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -116,9 +126,9 @@ export default function AdminLoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.demoPanel}>
-            <Text style={styles.demoLabel}>Demo access</Text>
-            <Text style={styles.demoText}>City Official: {activeCredentials.email}</Text>
-            <Text style={styles.demoText}>Password: {activeCredentials.password}</Text>
+            <Text style={styles.demoLabel}>Access policy</Text>
+            <Text style={styles.demoText}>Only backend-whitelisted city officials can sign in.</Text>
+            <Text style={styles.demoText}>Update ADMIN_PORTAL_WHITELIST to grant access.</Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -230,6 +240,9 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontSize: 15,
     fontWeight: '800',
+  },
+  primaryButtonDisabled: {
+    opacity: 0.7,
   },
   secondaryButton: {
     borderRadius: 999,

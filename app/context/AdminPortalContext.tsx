@@ -1,24 +1,34 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  ADMIN_DEMO_CREDENTIALS,
-  ADMIN_PORTAL_REPORTS,
-  type AdminNote,
-  type AdminPriority,
-  type AdminReport,
-  type AdminRole,
-  type AdminWorkflowStatus,
-} from '@/data/adminPortalMock';
 import { useApp } from '@/context/AppContext';
-import { getDistrict, getPriorityFromScore } from '@/utils/adminPortal';
-import { listReports, toImageUrl, type ApiReport } from '@/lib/api';
+import {
+  adminAddNote,
+  adminListReports,
+  adminLogin,
+  adminPublishPublicUpdate,
+  adminUpdateAssignment,
+  adminUpdatePriority,
+  adminUpdateStatus,
+  type AdminApiReport,
+  type AdminApiUser,
+} from '@/lib/api';
+import type {
+  AdminPriority,
+  AdminReport,
+  AdminWorkflowStatus,
+} from '@/data/adminPortalMock';
 
 interface AdminUser {
   name: string;
   title: string;
   email: string;
-  role: AdminRole;
+  role: 'official';
   team: string | null;
+}
+
+interface LoginResult {
+  success: boolean;
+  message?: string;
 }
 
 interface AdminPortalContextValue {
@@ -27,13 +37,14 @@ interface AdminPortalContextValue {
   user: AdminUser | null;
   canAssignPriority: boolean;
   reports: AdminReport[];
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
-  updateStatus: (id: string, status: AdminWorkflowStatus) => void;
-  assignPriority: (id: string, priority: AdminPriority) => void;
-  assignTeam: (id: string, team: string) => void;
-  addInternalNote: (id: string, message: string) => void;
-  publishPublicUpdate: (id: string, message: string) => void;
+  refreshReports: () => Promise<void>;
+  updateStatus: (id: string, status: AdminWorkflowStatus) => Promise<void>;
+  assignPriority: (id: string, priority: AdminPriority) => Promise<void>;
+  assignTeam: (id: string, team: string) => Promise<void>;
+  addInternalNote: (id: string, message: string) => Promise<void>;
+  publishPublicUpdate: (id: string, message: string) => Promise<void>;
 }
 
 const AdminPortalContext = createContext<AdminPortalContextValue>({
@@ -42,13 +53,14 @@ const AdminPortalContext = createContext<AdminPortalContextValue>({
   user: null,
   canAssignPriority: false,
   reports: [],
-  login: () => false,
+  login: async () => ({ success: false }),
   logout: () => {},
-  updateStatus: () => {},
-  assignPriority: () => {},
-  assignTeam: () => {},
-  addInternalNote: () => {},
-  publishPublicUpdate: () => {},
+  refreshReports: async () => {},
+  updateStatus: async () => {},
+  assignPriority: async () => {},
+  assignTeam: async () => {},
+  addInternalNote: async () => {},
+  publishPublicUpdate: async () => {},
 });
 
 export function useAdminPortal() {
@@ -57,93 +69,44 @@ export function useAdminPortal() {
 
 const ADMIN_SESSION_KEY = 'admin_portal_session';
 
-function syncPublicUpdateNote(
-  reportId: string,
-  notes: AdminNote[],
-  publicUpdate: AdminReport['publicUpdate']
-) {
-  if (!publicUpdate) return notes;
-
-  const nextMessage = `Public update: ${publicUpdate.message}`;
-  const nextAuthor = `${publicUpdate.authorName} (Official)`;
-  const alreadySynced = notes.some(
-    (note) => note.message === nextMessage && note.createdAt === publicUpdate.updatedAt
-  );
-
-  if (alreadySynced) return notes;
-
-  return [
-    {
-      id: `${reportId}-public-${new Date(publicUpdate.updatedAt).getTime()}`,
-      author: nextAuthor,
-      message: nextMessage,
-      createdAt: publicUpdate.updatedAt,
-    },
-    ...notes,
-  ];
-}
-
-function mapApiReportToAdminReport(apiReport: ApiReport): AdminReport {
-  const priority = getPriorityFromScore(apiReport.severity_score);
-  const category = apiReport.severity_score >= 6 ? 'Pothole' : 'Road Surface';
-
+function mapApiAdminReport(apiReport: AdminApiReport): AdminReport {
   return {
-    id: apiReport.id,
-    title: apiReport.severity_score >= 7.5 ? 'High-severity pothole cluster' : 'Road surface damage',
-    category,
-    description:
-      apiReport.description ??
-      'Citizen-submitted roadway issue requiring city review, crew assignment, and closeout verification.',
-    imageUri: toImageUrl(apiReport.image_path),
-    location: {
-      lat: apiReport.latitude,
-      lng: apiReport.longitude,
-      address: apiReport.address,
-    },
-    severityScore: apiReport.severity_score,
-    priority,
-    status: apiReport.status === 'fixed' ? 'resolved' : 'new',
-    district: getDistrict(apiReport.address),
-    assignedTeam: 'Surface Crew Alpha',
-    source: 'Resident App',
-    reportedBy: 'Resident Mobile Intake',
-    createdAt: apiReport.created_at,
-    updatedAt: apiReport.updated_at,
-    publicUpdate: null,
-    notes: [],
+    ...apiReport,
+    imageUri: apiReport.imageUri?.startsWith('http')
+      ? apiReport.imageUri
+      : apiReport.imageUri
+      ? `${apiReport.imageUri}`
+      : '',
   };
 }
 
-function mergeAdminReports(existing: AdminReport[], incoming: AdminReport[]) {
-  const merged = [...existing];
-
-  incoming.forEach((report) => {
-    const idx = merged.findIndex((r) => r.id === report.id);
-    if (idx === -1) {
-      merged.unshift(report);
-      return;
-    }
-
-    const preservedNotes = merged[idx].notes;
-    merged[idx] = {
-      ...merged[idx],
-      ...report,
-      notes: preservedNotes,
-    };
-  });
-
-  return merged;
+function mapApiAdminUser(apiUser: AdminApiUser): AdminUser {
+  return {
+    name: apiUser.name,
+    title: apiUser.title,
+    email: apiUser.email,
+    role: apiUser.role,
+    team: apiUser.team,
+  };
 }
 
 export function AdminPortalProvider({ children }: { children: ReactNode }) {
-  const { reports: appReports, updatePublicReport, updateReportStatus: updateResidentStatus } =
-    useApp();
+  const { updatePublicReport, updateReportStatus: updateResidentStatus } = useApp();
   const [isReady, setIsReady] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
-  const [reports, setReports] = useState<AdminReport[]>(ADMIN_PORTAL_REPORTS);
+  const [reports, setReports] = useState<AdminReport[]>([]);
+
+  const refreshReports = async () => {
+    try {
+      const apiReports = await adminListReports();
+      setReports(apiReports.map(mapApiAdminReport));
+    } catch (error) {
+      console.warn('Failed to load admin reports from API', error);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const storedUser = await AsyncStorage.getItem(ADMIN_SESSION_KEY);
         if (storedUser) {
@@ -155,222 +118,118 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // Load all reports for officials from FastAPI
   useEffect(() => {
-    void (async () => {
-      try {
-        const apiReports = await listReports();
-        const mapped = apiReports.map(mapApiReportToAdminReport);
-        setReports((currentReports) => mergeAdminReports(currentReports, mapped));
-      } catch (error) {
-        console.warn('Failed to load reports from API', error);
-      }
-    })();
-  }, []);
+    if (!user) return;
+    void refreshReports();
+  }, [user]);
 
-  useEffect(() => {
-    setReports((currentReports) => {
-      const mergedReports = [...currentReports];
-
-      appReports.forEach((appReport) => {
-        const existingIndex = mergedReports.findIndex((report) => report.id === appReport.id);
-
-        if (existingIndex === -1) {
-          mergedReports.unshift({
-            id: appReport.id,
-            title:
-              appReport.severityScore >= 7.5
-                ? 'High-severity pothole cluster'
-                : 'Road surface damage',
-            category: appReport.severityScore >= 6 ? 'Pothole' : 'Road Surface',
-            description:
-              'Citizen-submitted roadway issue requiring city review and field verification.',
-            imageUri: appReport.imageUri,
-            location: appReport.location,
-            severityScore: appReport.severityScore,
-            priority: getPriorityFromScore(appReport.severityScore),
-            status: appReport.status === 'fixed' ? 'resolved' : 'new',
-            district: getDistrict(appReport.location.address),
-            assignedTeam: 'Surface Crew Alpha',
-            source: 'Resident App',
-            reportedBy: 'Resident Mobile Intake',
-            createdAt: new Date().toISOString(),
-            updatedAt: appReport.publicUpdate?.updatedAt ?? new Date().toISOString(),
-            publicUpdate: appReport.publicUpdate ?? null,
-            notes: syncPublicUpdateNote(appReport.id, [], appReport.publicUpdate ?? null),
-          });
-          return;
-        }
-
-        const existingReport = mergedReports[existingIndex];
-        const nextPublicUpdate = appReport.publicUpdate ?? existingReport.publicUpdate ?? null;
-        mergedReports[existingIndex] = {
-          ...existingReport,
-          imageUri: appReport.imageUri,
-          location: appReport.location,
-          severityScore: appReport.severityScore,
-          status:
-            appReport.status === 'fixed'
-              ? 'resolved'
-              : existingReport.status === 'resolved'
-                ? 'resolved'
-                : existingReport.status,
-          updatedAt: nextPublicUpdate?.updatedAt ?? existingReport.updatedAt,
-          publicUpdate: nextPublicUpdate,
-          notes: syncPublicUpdateNote(
-            existingReport.id,
-            existingReport.notes,
-            appReport.publicUpdate ?? null
-          ),
-        };
-      });
-
-      return mergedReports;
-    });
-  }, [appReports]);
-
-  const login = (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPassword = password.trim();
-    const matchedCredential = Object.values(ADMIN_DEMO_CREDENTIALS).find(
-      (credential) =>
-        credential.email === normalizedEmail && credential.password === normalizedPassword
-    );
 
-    if (!matchedCredential) return false;
+    if (!normalizedEmail || !normalizedPassword) {
+      return { success: false, message: 'Email and password are required.' };
+    }
 
-    const nextUser = {
-      name: matchedCredential.name,
-      title: matchedCredential.title,
-      email: matchedCredential.email,
-      role: matchedCredential.role,
-      team: matchedCredential.team,
-    };
-    setUser(nextUser);
-    void AsyncStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(nextUser));
-    return true;
+    try {
+      const adminUser = await adminLogin(normalizedEmail, normalizedPassword);
+      const nextUser = mapApiAdminUser(adminUser);
+      setUser(nextUser);
+      await AsyncStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(nextUser));
+      await refreshReports();
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        message: 'Invalid credentials or admin portal service unavailable.',
+      };
+    }
   };
 
   const logout = () => {
     setUser(null);
+    setReports([]);
     void AsyncStorage.removeItem(ADMIN_SESSION_KEY);
   };
 
-  const updateStatus = (id: string, status: AdminWorkflowStatus) => {
-    updateResidentStatus(id, status === 'resolved' ? 'fixed' : 'open');
-    setReports((currentReports) =>
-      currentReports.map((report) =>
-        report.id === id
-          ? {
-              ...report,
-              status,
-              updatedAt: new Date().toISOString(),
-            }
-          : report
-      )
-    );
+  const updateStatus = async (id: string, status: AdminWorkflowStatus) => {
+    try {
+      const updated = await adminUpdateStatus(id, status);
+      const mapped = mapApiAdminReport(updated);
+      setReports((currentReports) =>
+        currentReports.map((report) => (report.id === id ? mapped : report))
+      );
+      updateResidentStatus(id, status === 'resolved' ? 'fixed' : 'open');
+    } catch (error) {
+      console.warn('Failed to update admin status', error);
+    }
   };
 
-  const assignPriority = (id: string, priority: AdminPriority) => {
+  const assignPriority = async (id: string, priority: AdminPriority) => {
     if (!user) return;
 
-    setReports((currentReports) =>
-      currentReports.map((report) =>
-        report.id === id
-          ? {
-              ...report,
-              priority,
-              updatedAt: new Date().toISOString(),
-            }
-          : report
-      )
-    );
+    try {
+      const updated = await adminUpdatePriority(id, priority);
+      const mapped = mapApiAdminReport(updated);
+      setReports((currentReports) =>
+        currentReports.map((report) => (report.id === id ? mapped : report))
+      );
+    } catch (error) {
+      console.warn('Failed to update report priority', error);
+    }
   };
 
-  const assignTeam = (id: string, team: string) => {
+  const assignTeam = async (id: string, team: string) => {
     if (!user) return;
 
     const trimmedTeam = team.trim();
     if (!trimmedTeam) return;
 
-    const nextTimestamp = new Date().toISOString();
-
-    setReports((currentReports) =>
-      currentReports.map((report) =>
-        report.id === id
-          ? {
-              ...report,
-              assignedTeam: trimmedTeam,
-              status: report.status === 'new' ? 'assigned' : report.status,
-              notes: [
-                {
-                  id: `${report.id}-assign-${Date.now()}`,
-                  author: `${user.name} (${user.team})`,
-                  message: `Assignment updated to ${trimmedTeam}.`,
-                  createdAt: nextTimestamp,
-                },
-                ...report.notes,
-              ],
-              updatedAt: nextTimestamp,
-            }
-          : report
-      )
-    );
+    try {
+      const updated = await adminUpdateAssignment(id, trimmedTeam, user.name);
+      const mapped = mapApiAdminReport(updated);
+      setReports((currentReports) =>
+        currentReports.map((report) => (report.id === id ? mapped : report))
+      );
+    } catch (error) {
+      console.warn('Failed to assign team', error);
+    }
   };
 
-  const addInternalNote = (id: string, message: string) => {
+  const addInternalNote = async (id: string, message: string) => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage) return;
 
-    setReports((currentReports) =>
-      currentReports.map((report) =>
-        report.id === id
-          ? {
-              ...report,
-              notes: [
-                {
-                  id: `${report.id}-${Date.now()}`,
-                  author: user?.name ?? 'Admin User',
-                  message: trimmedMessage,
-                  createdAt: new Date().toISOString(),
-                },
-                ...report.notes,
-              ],
-              updatedAt: new Date().toISOString(),
-            }
-          : report
-      )
-    );
+    try {
+      const updated = await adminAddNote(id, user?.name ?? 'City Official', trimmedMessage);
+      const mapped = mapApiAdminReport(updated);
+      setReports((currentReports) =>
+        currentReports.map((report) => (report.id === id ? mapped : report))
+      );
+    } catch (error) {
+      console.warn('Failed to add internal note', error);
+    }
   };
 
-  const publishPublicUpdate = (id: string, message: string) => {
+  const publishPublicUpdate = async (id: string, message: string) => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage || !user) return;
 
-    const nextUpdatedAt = new Date().toISOString();
-    const nextPublicUpdate: NonNullable<AdminReport['publicUpdate']> = {
-      authorRole: 'official',
-      authorName: user.name,
-      message: trimmedMessage,
-      updatedAt: nextUpdatedAt,
-    };
+    try {
+      const updated = await adminPublishPublicUpdate(id, user.name, trimmedMessage);
+      const mapped = mapApiAdminReport(updated);
+      setReports((currentReports) =>
+        currentReports.map((report) => (report.id === id ? mapped : report))
+      );
 
-    updatePublicReport(id, {
-      publicUpdate: nextPublicUpdate,
-    });
-
-    setReports((currentReports) =>
-      currentReports.map((report) =>
-        report.id === id
-          ? {
-              ...report,
-              publicUpdate: nextPublicUpdate,
-              notes: syncPublicUpdateNote(report.id, report.notes, nextPublicUpdate),
-              updatedAt: nextUpdatedAt,
-            }
-          : report
-      )
-    );
+      if (mapped.publicUpdate) {
+        updatePublicReport(id, {
+          publicUpdate: mapped.publicUpdate,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to publish public update', error);
+    }
   };
 
   const value = {
@@ -381,6 +240,7 @@ export function AdminPortalProvider({ children }: { children: ReactNode }) {
     reports,
     login,
     logout,
+    refreshReports,
     updateStatus,
     assignPriority,
     assignTeam,

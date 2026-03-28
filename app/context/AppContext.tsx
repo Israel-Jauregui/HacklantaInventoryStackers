@@ -29,7 +29,12 @@ export interface Report {
   severityScore: number;
   status: 'open' | 'fixed';
   userId: string;
-  publicUpdate?: string | null;
+  publicUpdate?: {
+    authorRole: 'official';
+    authorName: string;
+    message: string;
+    updatedAt: string;
+  } | null;
 }
 
 /** Convert a backend report into the shape the UI expects. */
