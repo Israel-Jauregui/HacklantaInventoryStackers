@@ -1,4 +1,4 @@
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
