@@ -1,5 +1,6 @@
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,17 @@ export default function CameraScreen() {
     } catch {
       // Fallback: navigate with empty URI for demo purposes
       router.push({ pathname: '/location', params: { imageUri: '' } });
+    }
+  };
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      allowsEditing: true,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      router.push({ pathname: '/location', params: { imageUri: result.assets[0].uri } });
     }
   };
 
@@ -54,62 +66,62 @@ export default function CameraScreen() {
   // ── Camera ready ──
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing={facing} enableTorch={flashOn}>
-        {/* Top overlay */}
-        <SafeAreaView style={styles.topOverlay} edges={['top']}>
-          {/* Step progress bar */}
-          <View style={styles.stepBar}>
-            <View style={[styles.stepSeg, styles.stepActive]} />
-            <View style={styles.stepSeg} />
-            <View style={styles.stepSeg} />
-            <View style={styles.stepSeg} />
-          </View>
+      <CameraView ref={cameraRef} style={styles.camera} facing={facing} enableTorch={flashOn} />
 
-          <View style={styles.topRow}>
-            <View style={{ width: 36 }} />
-            <View style={styles.modePill}>
-              <Text style={styles.modePillText}>POTHOLE MODE</Text>
-            </View>
-            <TouchableOpacity style={styles.topBtn} onPress={() => setFlashOn((f) => !f)}>
-              <Ionicons name={flashOn ? 'flash' : 'flash-off'} size={18} color={flashOn ? Colors.yellow : Colors.white} />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-
-        {/* Focus box in center */}
-        <View style={styles.focusWrap}>
-          <View style={styles.focusBox}>
-            <View style={[styles.focusCorner, styles.cTL]} />
-            <View style={[styles.focusCorner, styles.cTR]} />
-            <View style={[styles.focusCorner, styles.cBL]} />
-            <View style={[styles.focusCorner, styles.cBR]} />
-          </View>
+      {/* Top overlay */}
+      <SafeAreaView style={styles.topOverlay} edges={['top']}>
+        {/* Step progress bar */}
+        <View style={styles.stepBar}>
+          <View style={[styles.stepSeg, styles.stepActive]} />
+          <View style={styles.stepSeg} />
+          <View style={styles.stepSeg} />
+          <View style={styles.stepSeg} />
         </View>
 
-        {/* Bottom overlay */}
-        <View style={styles.bottomOverlay}>
-          <Text style={styles.hint}>Point at the pothole and tap to capture</Text>
-          <View style={styles.controls}>
-            {/* Gallery */}
-            <TouchableOpacity style={styles.galleryBtn}>
-              <Ionicons name="images-outline" size={20} color={Colors.white} />
-            </TouchableOpacity>
-
-            {/* Shutter */}
-            <TouchableOpacity style={styles.shutter} onPress={handleCapture} activeOpacity={0.7}>
-              <View style={styles.shutterInner} />
-            </TouchableOpacity>
-
-            {/* Flip */}
-            <TouchableOpacity
-              style={styles.flipBtn}
-              onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
-            >
-              <Ionicons name="camera-reverse-outline" size={22} color={Colors.white} />
-            </TouchableOpacity>
+        <View style={styles.topRow}>
+          <View style={{ width: 36 }} />
+          <View style={styles.modePill}>
+            <Text style={styles.modePillText}>POTHOLE MODE</Text>
           </View>
+          <TouchableOpacity style={styles.topBtn} onPress={() => setFlashOn((f) => !f)}>
+            <Ionicons name={flashOn ? 'flash' : 'flash-off'} size={18} color={flashOn ? Colors.yellow : Colors.white} />
+          </TouchableOpacity>
         </View>
-      </CameraView>
+      </SafeAreaView>
+
+      {/* Focus box in center */}
+      <View style={styles.focusWrap}>
+        <View style={styles.focusBox}>
+          <View style={[styles.focusCorner, styles.cTL]} />
+          <View style={[styles.focusCorner, styles.cTR]} />
+          <View style={[styles.focusCorner, styles.cBL]} />
+          <View style={[styles.focusCorner, styles.cBR]} />
+        </View>
+      </View>
+
+      {/* Bottom overlay */}
+      <View style={styles.bottomOverlay}>
+        <Text style={styles.hint}>Point at the pothole and tap to capture</Text>
+        <View style={styles.controls}>
+          {/* Gallery */}
+          <TouchableOpacity style={styles.galleryBtn} onPress={handlePickImage}>
+            <Ionicons name="images-outline" size={20} color={Colors.white} />
+          </TouchableOpacity>
+
+          {/* Shutter */}
+          <TouchableOpacity style={styles.shutter} onPress={handleCapture} activeOpacity={0.7}>
+            <View style={styles.shutterInner} />
+          </TouchableOpacity>
+
+          {/* Flip */}
+          <TouchableOpacity
+            style={styles.flipBtn}
+            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+          >
+            <Ionicons name="camera-reverse-outline" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }

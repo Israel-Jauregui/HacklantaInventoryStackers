@@ -17,6 +17,7 @@ export default function RootLayout() {
         <Stack.Screen name="report-details" options={{ presentation: 'card' }} />
         <Stack.Screen name="review" options={{ presentation: 'card' }} />
         <Stack.Screen name="details" options={{ presentation: 'card' }} />
+        <Stack.Screen name="edit-profile" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack>
       <StatusBar style="light" />
     </AppProvider>

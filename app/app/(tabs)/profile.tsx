@@ -5,6 +5,7 @@ import {
   Switch,
   FlatList,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,8 +14,14 @@ import { useApp } from '@/context/AppContext';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 import type { Report } from '@/data/mockReports';
 
+/* emoji lookup for avatar presets */
+const AVATAR_EMOJIS: Record<string, string> = {
+  '1': '🦸', '2': '🛣️', '3': '🔧', '4': '🏗️', '5': '🦺', '6': '🚧',
+  '7': '🎯', '8': '⚡', '9': '🌟', '10': '🏆', '11': '🦅', '12': '🔥',
+};
+
 export default function ProfileScreen() {
-  const { deviceUuid, isAdmin, setIsAdmin, reports } = useApp();
+  const { deviceUuid, displayName, avatarUri, isAdmin, setIsAdmin, reports } = useApp();
   const router = useRouter();
 
   const myReports = reports.filter((r) => r.userId === deviceUuid);
@@ -75,20 +82,42 @@ export default function ProfileScreen() {
       {/* ── Header ── */}
       <View style={styles.header}>
         <Text style={styles.logo}>StreetSense</Text>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={18} color={Colors.muted} />
-        </View>
+        <TouchableOpacity
+          style={styles.avatar}
+          activeOpacity={0.7}
+          onPress={() => router.push('/edit-profile')}
+        >
+          {avatarUri && AVATAR_EMOJIS[avatarUri] ? (
+            <Text style={styles.avatarEmoji}>{AVATAR_EMOJIS[avatarUri]}</Text>
+          ) : (
+            <Ionicons name="person" size={18} color={Colors.muted} />
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* ── User ID Card ── */}
+      {/* ── Name + ID Card ── */}
       <View style={styles.idCard}>
-        <View style={styles.idIconWrap}>
-          <Ionicons name="finger-print" size={22} color={Colors.yellow} />
-        </View>
+        <TouchableOpacity
+          style={styles.idIconWrap}
+          activeOpacity={0.7}
+          onPress={() => router.push('/edit-profile')}
+        >
+          {avatarUri && AVATAR_EMOJIS[avatarUri] ? (
+            <Text style={{ fontSize: 22 }}>{AVATAR_EMOJIS[avatarUri]}</Text>
+          ) : (
+            <Ionicons name="finger-print" size={22} color={Colors.yellow} />
+          )}
+        </TouchableOpacity>
         <View style={styles.idTextWrap}>
-          <Text style={styles.idLabel}>YOUR DEVICE ID</Text>
+          <Text style={styles.displayName} numberOfLines={1}>{displayName}</Text>
           <Text style={styles.idValue}>{shortId}</Text>
         </View>
+        <TouchableOpacity
+          hitSlop={12}
+          onPress={() => router.push('/edit-profile')}
+        >
+          <Ionicons name="create-outline" size={18} color={Colors.muted} />
+        </TouchableOpacity>
       </View>
 
       {/* ── Stats Row ── */}
@@ -180,6 +209,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarEmoji: { fontSize: 18 },
 
   /* ── ID Card ── */
   idCard: {
@@ -203,6 +233,12 @@ const styles = StyleSheet.create({
   },
   idTextWrap: {
     flex: 1,
+  },
+  displayName: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   idLabel: {
     color: Colors.muted,
