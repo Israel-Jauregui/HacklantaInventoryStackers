@@ -4,8 +4,10 @@ import * as Crypto from 'expo-crypto';
 import { MOCK_REPORTS, type Report } from '@/data/mockReports';
 
 const STORAGE_KEY = 'device_uuid';
+// Combined keys from both branches
 const NAME_KEY = 'display_name';
 const AVATAR_KEY = 'avatar_uri';
+const REPORTS_STORAGE_KEY = 'streetsense_reports';
 
 interface AppContextValue {
   deviceUuid: string | null;
@@ -18,6 +20,10 @@ interface AppContextValue {
   reports: Report[];
   addReport: (report: Report) => void;
   updateReportStatus: (id: string, status: 'open' | 'fixed') => void;
+  updatePublicReport: (
+    id: string,
+    patch: Partial<Pick<Report, 'status' | 'publicUpdate'>>
+  ) => void;
 }
 
 const AppContext = createContext<AppContextValue>({
@@ -31,6 +37,7 @@ const AppContext = createContext<AppContextValue>({
   reports: [],
   addReport: () => {},
   updateReportStatus: () => {},
+  updatePublicReport: () => {},
 });
 
 export function useApp() {
@@ -43,6 +50,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [avatarUri, setAvatarUriState] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
+  const [hasLoadedReports, setHasLoadedReports] = useState(false);
 
   // Initialize device UUID and seed mock data
   useEffect(() => {
@@ -54,20 +62,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       setDeviceUuid(uuid);
 
-      // Restore persisted name & avatar
+      // Restore persisted name & avatar (from main)
       const savedName = await AsyncStorage.getItem(NAME_KEY);
       if (savedName) setDisplayNameState(savedName);
       const savedAvatar = await AsyncStorage.getItem(AVATAR_KEY);
       if (savedAvatar) setAvatarUriState(savedAvatar);
 
+      // Restore stored reports (from adminBranch)
+      const storedReports = await AsyncStorage.getItem(REPORTS_STORAGE_KEY);
+      const baseReports = storedReports
+        ? (JSON.parse(storedReports) as Report[])
+        : MOCK_REPORTS;
+
       // Patch the first 3 mock reports to belong to this device so profile isn't empty
-      const seeded = MOCK_REPORTS.map((r, i) =>
+      const seeded = baseReports.map((r, i) =>
         i < 3 ? { ...r, userId: uuid! } : { ...r }
       );
       setReports(seeded);
+      setHasLoadedReports(true);
     })();
   }, []);
 
+  // Profile setters (from main)
   const setDisplayName = useCallback(async (name: string) => {
     setDisplayNameState(name);
     await AsyncStorage.setItem(NAME_KEY, name);
@@ -78,6 +94,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (uri) await AsyncStorage.setItem(AVATAR_KEY, uri);
     else await AsyncStorage.removeItem(AVATAR_KEY);
   }, []);
+
+  // Report sync effect (from adminBranch)
+  useEffect(() => {
+    if (!hasLoadedReports) return;
+    void AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
+  }, [hasLoadedReports, reports]);
 
   const addReport = useCallback((report: Report) => {
     setReports((prev) => [report, ...prev]);
@@ -92,9 +114,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const updatePublicReport = useCallback(
+    (id: string, patch: Partial<Pick<Report, 'status' | 'publicUpdate'>>) => {
+      setReports((prev) =>
+        prev.map((report) =>
+          report.id === id
+            ? {
+                ...report,
+                ...patch,
+              }
+            : report
+        )
+      );
+    },
+    []
+  );
+
   return (
     <AppContext.Provider
-      value={{ deviceUuid, displayName, setDisplayName, avatarUri, setAvatarUri, isAdmin, setIsAdmin, reports, addReport, updateReportStatus }}
+      // Combined values exposed to the app context
+      value={{
+        deviceUuid,
+        displayName,
+        setDisplayName,
+        avatarUri,
+        setAvatarUri,
+        isAdmin,
+        setIsAdmin,
+        reports,
+        addReport,
+        updateReportStatus,
+        updatePublicReport,
+      }}
     >
       {children}
     </AppContext.Provider>
