@@ -4,10 +4,17 @@ import * as Crypto from 'expo-crypto';
 import { MOCK_REPORTS, type Report } from '@/data/mockReports';
 
 const STORAGE_KEY = 'device_uuid';
+// Combined keys from both branches
+const NAME_KEY = 'display_name';
+const AVATAR_KEY = 'avatar_uri';
 const REPORTS_STORAGE_KEY = 'streetsense_reports';
 
 interface AppContextValue {
   deviceUuid: string | null;
+  displayName: string;
+  setDisplayName: (name: string) => void;
+  avatarUri: string | null;
+  setAvatarUri: (uri: string | null) => void;
   isAdmin: boolean;
   setIsAdmin: (v: boolean) => void;
   reports: Report[];
@@ -21,6 +28,10 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue>({
   deviceUuid: null,
+  displayName: 'StreetSense User',
+  setDisplayName: () => {},
+  avatarUri: null,
+  setAvatarUri: () => {},
   isAdmin: false,
   setIsAdmin: () => {},
   reports: [],
@@ -35,6 +46,8 @@ export function useApp() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [deviceUuid, setDeviceUuid] = useState<string | null>(null);
+  const [displayName, setDisplayNameState] = useState('StreetSense User');
+  const [avatarUri, setAvatarUriState] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
   const [hasLoadedReports, setHasLoadedReports] = useState(false);
@@ -49,6 +62,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       setDeviceUuid(uuid);
 
+      // Restore persisted name & avatar (from main)
+      const savedName = await AsyncStorage.getItem(NAME_KEY);
+      if (savedName) setDisplayNameState(savedName);
+      const savedAvatar = await AsyncStorage.getItem(AVATAR_KEY);
+      if (savedAvatar) setAvatarUriState(savedAvatar);
+
+      // Restore stored reports (from adminBranch)
       const storedReports = await AsyncStorage.getItem(REPORTS_STORAGE_KEY);
       const baseReports = storedReports
         ? (JSON.parse(storedReports) as Report[])
@@ -63,6 +83,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
+  // Profile setters (from main)
+  const setDisplayName = useCallback(async (name: string) => {
+    setDisplayNameState(name);
+    await AsyncStorage.setItem(NAME_KEY, name);
+  }, []);
+
+  const setAvatarUri = useCallback(async (uri: string | null) => {
+    setAvatarUriState(uri);
+    if (uri) await AsyncStorage.setItem(AVATAR_KEY, uri);
+    else await AsyncStorage.removeItem(AVATAR_KEY);
+  }, []);
+
+  // Report sync effect (from adminBranch)
   useEffect(() => {
     if (!hasLoadedReports) return;
     void AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
@@ -99,8 +132,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider
+      // Combined values exposed to the app context
       value={{
         deviceUuid,
+        displayName,
+        setDisplayName,
+        avatarUri,
+        setAvatarUri,
         isAdmin,
         setIsAdmin,
         reports,

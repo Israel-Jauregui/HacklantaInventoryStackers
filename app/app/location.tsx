@@ -17,34 +17,37 @@ export default function LocationScreen() {
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setDenied(true);
-        setLoading(false);
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      setLocation(loc);
-
-      try {
-        const [geo] = await Location.reverseGeocodeAsync({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
-        if (geo) {
-          const street = [geo.streetNumber, geo.street].filter(Boolean).join(' ') || 'Unknown street';
-          const city = [geo.city, geo.region, geo.postalCode].filter(Boolean).join(', ');
-          setAddress(street);
-          setArea(city || 'Unknown area');
-        }
-      } catch {
-        setAddress(`${loc.coords.latitude.toFixed(5)}, ${loc.coords.longitude.toFixed(5)}`);
-        setArea('Coordinates');
-      }
+  const fetchLocation = async () => {
+    setLoading(true);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setDenied(true);
       setLoading(false);
-    })();
+      return;
+    }
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    setLocation(loc);
+
+    try {
+      const [geo] = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      if (geo) {
+        const street = [geo.streetNumber, geo.street].filter(Boolean).join(' ') || 'Unknown street';
+        const city = [geo.city, geo.region, geo.postalCode].filter(Boolean).join(', ');
+        setAddress(street);
+        setArea(city || 'Unknown area');
+      }
+    } catch {
+      setAddress(`${loc.coords.latitude.toFixed(5)}, ${loc.coords.longitude.toFixed(5)}`);
+      setArea('Coordinates');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchLocation();
   }, []);
 
   const handleNext = () => {
@@ -105,8 +108,11 @@ export default function LocationScreen() {
       <View style={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Confirm location</Text>
-          <TouchableOpacity>
-            <Text style={styles.adjustText}>Adjust</Text>
+          <TouchableOpacity onPress={fetchLocation} disabled={loading}>
+            <View style={styles.refreshRow}>
+              <Ionicons name="refresh" size={16} color={loading ? Colors.muted : Colors.yellow} />
+              <Text style={[styles.adjustText, !loading && { color: Colors.yellow }]}>Refresh GPS</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -127,20 +133,10 @@ export default function LocationScreen() {
           </View>
         </View>
 
-        {/* Location options */}
-        <View style={styles.optionsRow}>
-          <TouchableOpacity style={[styles.optionCard, styles.optionActive]}>
-            <Ionicons name="navigate" size={20} color={Colors.yellow} />
-            <Text style={[styles.optionLabel, styles.optionLabelActive]}>Use GPS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.optionCard}>
-            <Ionicons name="create-outline" size={20} color={Colors.muted} />
-            <Text style={styles.optionLabel}>Type address</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.optionCard}>
-            <Ionicons name="pin-outline" size={20} color={Colors.muted} />
-            <Text style={styles.optionLabel}>Drop pin</Text>
-          </TouchableOpacity>
+        {/* GPS indicator */}
+        <View style={[styles.optionCard, styles.optionActive]}>
+          <Ionicons name="navigate" size={20} color={Colors.yellow} />
+          <Text style={[styles.optionLabel, styles.optionLabelActive]}>Using GPS location</Text>
         </View>
       </View>
 
@@ -227,6 +223,11 @@ const styles = StyleSheet.create({
     color: Colors.muted,
     fontWeight: '500',
   },
+  refreshRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
 
   /* Address card */
   addrCard: {
@@ -261,18 +262,16 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
-  /* Location options */
-  optionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  /* GPS indicator */
   optionCard: {
-    flex: 1,
+    flexDirection: 'row',
     backgroundColor: Colors.dark3,
     borderRadius: 12,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
   },
@@ -282,7 +281,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     color: Colors.muted,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
   },
   optionLabelActive: {

@@ -55,7 +55,7 @@ export default function ReportDetailsScreen() {
     });
   };
 
-  const sevChips: Array<'Minor' | 'Moderate' | 'Critical'> = ['Minor', 'Moderate', 'Critical'];
+  const sevChips: ('Minor' | 'Moderate' | 'Critical')[] = ['Minor', 'Moderate', 'Critical'];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -113,17 +113,16 @@ export default function ReportDetailsScreen() {
                 const active = selectedSeverity === c;
                 const chipColor = c === 'Critical' ? Colors.red : c === 'Moderate' ? Colors.amber : Colors.green;
                 return (
-                  <TouchableOpacity
+                  <View
                     key={c}
                     style={[
                       styles.chip,
                       active && { backgroundColor: chipColor + '20', borderColor: chipColor },
                     ]}
-                    onPress={() => setSelectedSeverity(c)}
                   >
                     {active && <Ionicons name="checkmark" size={14} color={chipColor} />}
                     <Text style={[styles.chipText, active && { color: chipColor }]}>{c}</Text>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
@@ -136,6 +135,95 @@ export default function ReportDetailsScreen() {
               AI detected large pothole (~18 in wide, ~4 in deep). Severity set to{' '}
               <Text style={{ fontWeight: '700' }}>{selectedSeverity}</Text>.
             </Text>
+          </View>
+
+          {/* Car damage diagram */}
+          <View style={styles.damageCard}>
+            <View style={styles.damageHeader}>
+              <Ionicons name="car-sport" size={18} color={Colors.yellow} />
+              <Text style={styles.damageTitle}>Potential Vehicle Damage</Text>
+            </View>
+            <Text style={styles.damageSub}>
+              Based on pothole dimensions, AI estimates the following repair costs:
+            </Text>
+
+            {/* Car diagram */}
+            <View style={styles.carDiagram}>
+              {/* Car body outline */}
+              <View style={styles.carBody}>
+                {/* Hood */}
+                <View style={styles.carHood}>
+                  <Text style={styles.carPartLabel}>FRONT</Text>
+                </View>
+                {/* Windshield */}
+                <View style={styles.carWindshield} />
+                {/* Cabin */}
+                <View style={styles.carCabin} />
+                {/* Rear window */}
+                <View style={styles.carRearWindow} />
+                {/* Trunk */}
+                <View style={styles.carTrunk}>
+                  <Text style={styles.carPartLabel}>REAR</Text>
+                </View>
+              </View>
+
+              {/* Left wheels */}
+              <View style={[styles.wheel, styles.wheelFL]} />
+              <View style={[styles.wheel, styles.wheelRL]} />
+              {/* Right wheels */}
+              <View style={[styles.wheel, styles.wheelFR]} />
+              <View style={[styles.wheel, styles.wheelRR]} />
+
+              {/* Damage callouts — left side */}
+              <View style={[styles.callout, styles.calloutTire]}>
+                <View style={styles.calloutDot} />
+                <View style={styles.calloutLine} />
+                <View style={styles.calloutBubble}>
+                  <Text style={styles.calloutName}>Tires</Text>
+                  <Text style={styles.calloutCost}>$150 – $300</Text>
+                </View>
+              </View>
+
+              <View style={[styles.callout, styles.calloutSusp]}>
+                <View style={styles.calloutDot} />
+                <View style={styles.calloutLine} />
+                <View style={styles.calloutBubble}>
+                  <Text style={styles.calloutName}>Suspension</Text>
+                  <Text style={styles.calloutCost}>$500 – $1,500</Text>
+                </View>
+              </View>
+
+              {/* Damage callouts — right side */}
+              <View style={[styles.callout, styles.calloutRim]}>
+                <View style={styles.calloutBubbleR}>
+                  <Text style={styles.calloutName}>Rims / Wheels</Text>
+                  <Text style={styles.calloutCost}>$200 – $500</Text>
+                </View>
+                <View style={styles.calloutLine} />
+                <View style={styles.calloutDot} />
+              </View>
+
+              <View style={[styles.callout, styles.calloutAlign]}>
+                <View style={styles.calloutBubbleR}>
+                  <Text style={styles.calloutName}>Alignment</Text>
+                  <Text style={styles.calloutCost}>$100 – $200</Text>
+                </View>
+                <View style={styles.calloutLine} />
+                <View style={styles.calloutDot} />
+              </View>
+            </View>
+
+            {/* Undercarriage row */}
+            <View style={styles.underRow}>
+              <Ionicons name="warning" size={14} color={Colors.amber} />
+              <Text style={styles.underText}>Undercarriage risk: <Text style={{ fontWeight: '700', color: Colors.amber }}>$300 – $800</Text></Text>
+            </View>
+
+            {/* Total */}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>ESTIMATED TOTAL DAMAGE</Text>
+              <Text style={styles.totalValue}>$1,250 – $3,300</Text>
+            </View>
           </View>
 
           {/* Notes */}
@@ -249,6 +337,174 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,252,0,0.15)',
   },
   aiBannerText: { flex: 1, color: Colors.white, fontSize: 13, lineHeight: 19 },
+
+  /* Car damage card */
+  damageCard: {
+    backgroundColor: Colors.dark2,
+    borderRadius: 16,
+    padding: 18,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  damageHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  damageTitle: { color: Colors.white, fontSize: 15, fontWeight: '700' },
+  damageSub: { color: Colors.muted, fontSize: 12, lineHeight: 17 },
+
+  /* Car diagram container */
+  carDiagram: {
+    position: 'relative',
+    height: 220,
+    alignSelf: 'center',
+    width: '100%',
+    marginVertical: 4,
+  },
+
+  /* Car body */
+  carBody: {
+    position: 'absolute',
+    top: 20,
+    left: '50%',
+    marginLeft: -28,
+    width: 56,
+    height: 180,
+    alignItems: 'center',
+  },
+  carHood: {
+    width: 48,
+    height: 36,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+    backgroundColor: 'rgba(255,252,0,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,252,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  carWindshield: {
+    width: 42,
+    height: 18,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    marginTop: -1,
+  },
+  carCabin: {
+    width: 52,
+    height: 52,
+    backgroundColor: 'rgba(255,252,0,0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,252,0,0.25)',
+    marginTop: -1,
+  },
+  carRearWindow: {
+    width: 42,
+    height: 18,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    marginTop: -1,
+  },
+  carTrunk: {
+    width: 48,
+    height: 36,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    backgroundColor: 'rgba(255,252,0,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,252,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -1,
+  },
+  carPartLabel: { color: 'rgba(255,252,0,0.5)', fontSize: 7, fontWeight: '800', letterSpacing: 1 },
+
+  /* Wheels */
+  wheel: {
+    position: 'absolute',
+    width: 18,
+    height: 30,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  wheelFL: { top: 36, left: '50%', marginLeft: -46 },
+  wheelFR: { top: 36, left: '50%', marginLeft: 28 },
+  wheelRL: { top: 140, left: '50%', marginLeft: -46 },
+  wheelRR: { top: 140, left: '50%', marginLeft: 28 },
+
+  /* Callout system */
+  callout: { position: 'absolute', flexDirection: 'row', alignItems: 'center' },
+  calloutTire: { top: 42, left: 0, right: '58%' },
+  calloutSusp: { top: 100, left: 0, right: '58%' },
+  calloutRim: { top: 42, left: '58%', right: 0 },
+  calloutAlign: { top: 148, left: '58%', right: 0 },
+
+  calloutDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.red,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,80,80,0.5)',
+  },
+  calloutLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    minWidth: 10,
+  },
+  calloutBubble: {
+    backgroundColor: Colors.dark3,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  calloutBubbleR: {
+    backgroundColor: Colors.dark3,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'flex-end',
+  },
+  calloutName: { color: Colors.white, fontSize: 11, fontWeight: '700' },
+  calloutCost: { color: Colors.red, fontSize: 11, fontWeight: '600', marginTop: 1 },
+
+  /* Undercarriage row */
+  underRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,179,0,0.08)',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,179,0,0.15)',
+  },
+  underText: { color: Colors.muted2, fontSize: 12, flex: 1 },
+
+  /* Total */
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,80,80,0.08)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,80,80,0.2)',
+  },
+  totalLabel: { color: Colors.muted, fontSize: 10, fontWeight: '700', letterSpacing: 1, flexShrink: 1 },
+  totalValue: { color: Colors.red, fontSize: 13, fontWeight: '800' },
 
   /* Notes */
   notesWrap: { gap: 8 },
