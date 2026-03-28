@@ -5,44 +5,65 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/context/AppContext';
 import { Colors, severityColor } from '@/constants/theme';
+import { useState } from 'react';
 
 export default function ReviewScreen() {
-  const { imageUri, address, area, score, severity, notes, notify } =
+  const { imageUri, address, area, lat, lng, score, severity, notes, notify } =
     useLocalSearchParams<{
       imageUri: string;
       address: string;
       area: string;
+      lat: string;
+      lng: string;
       score: string;
       severity: string;
       notes: string;
       notify: string;
     }>();
   const router = useRouter();
-  const { addReport, deviceUuid } = useApp();
+  const { addReport, deviceUuid, isOnline } = useApp();
+  const [submitting, setSubmitting] = useState(false);
 
   const numScore = parseFloat(score) || 7.8;
+  const numLat = parseFloat(lat) || 33.784;
+  const numLng = parseFloat(lng) || -84.388;
   const sColor = severityColor(numScore);
 
-  const handleSubmit = () => {
-    addReport({
-      id: Date.now().toString(),
-      imageUri: imageUri ?? '',
-      location: {
-        lat: 33.784,
-        lng: -84.388,
-        address: `${address}, ${area}`,
-      },
-      severityScore: numScore,
-      status: 'open',
-      userId: deviceUuid ?? '',
-    });
-    router.replace('/(tabs)');
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await addReport({
+        id: Date.now().toString(),
+        imageUri: imageUri ?? '',
+        location: {
+          lat: numLat,
+          lng: numLng,
+          address: `${address}, ${area}`,
+        },
+        severityScore: numScore,
+        status: 'open',
+        userId: deviceUuid ?? '',
+      }, imageUri);
+      
+      router.replace('/(tabs)');
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+      Alert.alert(
+        'Submission Failed',
+        'Could not submit your report. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleEdit = () => {
@@ -135,10 +156,28 @@ export default function ReviewScreen() {
 
       {/* CTAs */}
       <View style={styles.ctaWrap}>
-        <TouchableOpacity style={styles.ctaBtn} onPress={handleSubmit} activeOpacity={0.8}>
-          <Text style={styles.ctaBtnText}>Submit report ↗</Text>
+        <TouchableOpacity 
+          style={[styles.ctaBtn, submitting && styles.ctaBtnDisabled]} 
+          onPress={handleSubmit} 
+          activeOpacity={0.8}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <View style={styles.ctaBtnLoading}>
+              <ActivityIndicator size="small" color={Colors.black} />
+              <Text style={styles.ctaBtnText}>Submitting...</Text>
+            </View>
+          ) : (
+            <Text style={styles.ctaBtnText}>Submit report</Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.editBtn} onPress={handleEdit} activeOpacity={0.7}>
+        {!isOnline && (
+          <View style={styles.offlineNote}>
+            <Ionicons name="cloud-offline" size={14} color="#FF9500" />
+            <Text style={styles.offlineNoteText}>Offline - report will be stored locally</Text>
+          </View>
+        )}
+        <TouchableOpacity style={styles.editBtn} onPress={handleEdit} activeOpacity={0.7} disabled={submitting}>
           <Ionicons name="pencil" size={16} color={Colors.white} />
           <Text style={styles.editBtnText}>Edit report</Text>
         </TouchableOpacity>
@@ -222,7 +261,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  ctaBtnDisabled: {
+    opacity: 0.7,
+  },
+  ctaBtnLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   ctaBtnText: { color: Colors.black, fontSize: 16, fontWeight: '700' },
+  offlineNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+  },
+  offlineNoteText: {
+    color: '#FF9500',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',

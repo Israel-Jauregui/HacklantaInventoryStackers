@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '@/context/AppContext';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 import type { Report } from '@/data/mockReports';
+import { useState, useCallback } from 'react';
 
 /* emoji lookup for avatar presets */
 const AVATAR_EMOJIS: Record<string, string> = {
@@ -21,13 +23,20 @@ const AVATAR_EMOJIS: Record<string, string> = {
 };
 
 export default function ProfileScreen() {
-  const { deviceUuid, displayName, avatarUri, isAdmin, setIsAdmin, reports } = useApp();
+  const { deviceUuid, userId, displayName, avatarUri, isAdmin, setIsAdmin, reports, refreshReports, isOnline } = useApp();
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const myReports = reports.filter((r) => r.userId === deviceUuid);
+  const myReports = reports.filter((r) => r.userId === deviceUuid || r.userId === userId);
   const openCount = myReports.filter((r) => r.status === 'open').length;
   const fixedCount = myReports.filter((r) => r.status === 'fixed').length;
   const shortId = deviceUuid ? deviceUuid.slice(0, 8).toUpperCase() : '--------';
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshReports();
+    setRefreshing(false);
+  }, [refreshReports]);
 
   const handleReportPress = (report: Report) => {
     router.push({ pathname: '/details', params: { id: report.id } });
@@ -144,6 +153,14 @@ export default function ProfileScreen() {
         renderItem={renderReport}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.yellow}
+            colors={[Colors.yellow]}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyText}>No reports yet. Go snap a pothole!</Text>

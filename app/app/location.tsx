@@ -53,7 +53,13 @@ export default function LocationScreen() {
   const handleNext = () => {
     router.push({
       pathname: '/report-details',
-      params: { imageUri, address, area },
+      params: { 
+        imageUri, 
+        address, 
+        area,
+        lat: String(lat),
+        lng: String(lng),
+      },
     });
   };
 

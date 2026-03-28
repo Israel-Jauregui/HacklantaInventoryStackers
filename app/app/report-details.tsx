@@ -16,10 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 
 export default function ReportDetailsScreen() {
-  const { imageUri, address, area } = useLocalSearchParams<{
+  const { imageUri, address, area, lat, lng } = useLocalSearchParams<{
     imageUri: string;
     address: string;
     area: string;
+    lat: string;
+    lng: string;
   }>();
   const router = useRouter();
 
@@ -47,6 +49,8 @@ export default function ReportDetailsScreen() {
         imageUri,
         address,
         area,
+        lat,
+        lng,
         score: String(score),
         severity: selectedSeverity ?? 'Critical',
         notes,

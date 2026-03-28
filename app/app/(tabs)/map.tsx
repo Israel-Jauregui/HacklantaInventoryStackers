@@ -1,11 +1,11 @@
-import { View, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, severityColor, severityLabel } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import type { Report } from '@/data/mockReports';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 
@@ -15,12 +15,13 @@ type Filter = (typeof FILTERS)[number];
 const MOCK_DISTANCES = ['0.2 mi', '0.4 mi', '0.7 mi', '1.1 mi', '1.5 mi', '2.0 mi'];
 
 export default function MapScreen() {
-  const { reports } = useApp();
+  const { reports, refreshReports, isLoading, isOnline } = useApp();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
   const [userLat, setUserLat] = useState(33.749);
   const [userLng, setUserLng] = useState(-84.388);
   const [mapReady, setMapReady] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -33,6 +34,12 @@ export default function MapScreen() {
       setMapReady(true);
     })();
   }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshReports();
+    setRefreshing(false);
+  }, [refreshReports]);
 
   const filtered = reports.filter((r) => {
     if (activeFilter === 'All') return true;
@@ -52,7 +59,15 @@ export default function MapScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.logo}>StreetSense</Text>
-          <Text style={styles.subtitle}>Atlanta, GA</Text>
+          <View style={styles.subtitleRow}>
+            <Text style={styles.subtitle}>Atlanta, GA</Text>
+            {!isOnline && (
+              <View style={styles.offlineBadge}>
+                <Ionicons name="cloud-offline" size={10} color="#FF9500" />
+                <Text style={styles.offlineText}>Offline</Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -119,6 +134,14 @@ export default function MapScreen() {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.yellow}
+            colors={[Colors.yellow]}
+          />
+        }
         renderItem={({ item, index }) => {
           const isOpen = item.status === 'open';
           return (
@@ -212,6 +235,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.muted,
     marginTop: 1,
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,149,0,0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  offlineText: {
+    color: '#FF9500',
+    fontSize: 10,
+    fontWeight: '600',
   },
 
   /* ── Map ── */
